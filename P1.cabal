@@ -1,0 +1,30 @@
+name:                P1
+version:             1.0
+homepage:            https://github.com/AlfaOmegaX/MH
+license:             GPL-3
+license-file:        LICENSE
+author:              Miguel Lentisco
+maintainer:          Miguel Lentisco
+category:            Personal
+build-type:          Simple
+cabal-version:       >=1.10
+description:         P1 Metaheurísticas algoritmos RELIEF/BL
+synopsis:            P1 Metaheurísticas
+
+executable mhP1
+  hs-source-dirs:      src
+  main-is:             P1.hs
+  other-modules:
+  ghc-options:         -Wall -Wno-incomplete-patterns -Wno-missing-signatures -O2 -funbox-strict-fields -optc-O3 -optc-mfpmath=sse  -funfolding-use-threshold=16 -fexcess-precision -optc-ffast-math
+  default-language:    Haskell2010
+  build-depends:       base >= 4.10 && < 5,
+                       vector >= 0.12,
+                       split >= 0.2.3.3,
+                       random >= 1.1,
+                       random-shuffle >= 0.0.4,
+                       directory >= 1.3,
+                       clock >= 0.7.2,
+                       normaldistribution >= 1.1.0.3,
+                       filepath >= 1.4,
+                       deepseq >= 1.4,
+                       mtl >= 2.2.2
