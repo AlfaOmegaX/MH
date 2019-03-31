@@ -1,14 +1,10 @@
-DIR = resultados bin 
-
 .PHONY: build run
 
 all: build
 
 build:
-	mkdir -p $(DIR)
 	stack build
-	stack install --local-bin-path bin/
-
+	stack install
 
 run:
-	./P1.exe
+	bin/P1.exe

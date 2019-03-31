@@ -11,7 +11,7 @@ cabal-version:       >=1.10
 description:         P1 Metaheurísticas algoritmos RELIEF/BL
 synopsis:            P1 Metaheurísticas
 
-executable mhP1
+executable P1
   hs-source-dirs:      src
   main-is:             P1.hs
   other-modules:
