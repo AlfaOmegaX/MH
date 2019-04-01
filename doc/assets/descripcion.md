@@ -33,7 +33,7 @@ Antes de explicar los algoritmos realizados, describiré los tipos, métodos com
 ## Notación de pseudocódigo
 He usado la explicación de Pablo Baeyens Fernández (disponible en [GitHub](https://github.com/mx-psi/metaheuristicas)) que también hizo las prácticas en Haskell y se entiende bastante bien para gente nueva a este tipo de notación:
 
-Usaré notación parecida a la usada en Haskell para que se entiendan mejor las cosas aunque será una versión muy simplificada ya que hay cosas como para generar números aleatorios que se complican en Haskell que omitiré. Los argumentos se pasan a las funciones separados por espacios y el tipo de la función se indica después de su nombre seguido de dos dobles puntos `::`.
+Usaré notación parecida a la usada en Haskell para que se entiendan mejor las cosas aunque será una versión muy simplificada ya que hay cosas como para generar números aleatorios que se complican en Haskell que omitiré. Los argumentos se pasan a las funciones separados por espacios y el tipo de la función se indica después de su nombre seguido de dos dobles puntos `::`. Además para evitar poner paréntesis se puede cambiar por `$`, es decir `f(g(z * y))` equivale a `f $ g $ z * y`.
 
 Para mostrar el estilo del pseudocódigo incluyo un ejemplo de pseudocódigo para una función en C:
 
@@ -65,6 +65,7 @@ También explico algunas funciones que se usan bastante:
 - `map f [x1, ..., xn]` toma una función `f` y una lista `[x1, ..., xn]` y devuelve la lista `[f x1, ..., f xn]`
 - `acumula (·) i [x1, ..., xn]` acumula los elementos de la lista usando la función `·`. Devuelve: `i·x1·x2···xn`.
 - `\x1 x2 ... xn → expr` es una función lambda (sin nombre) que toma `x1 x2 ... xn` como argumentos y devuelve `expr`
+- `repite n x` crea una lista de n copias de `x`.
 
 ## Representación de datos
 
