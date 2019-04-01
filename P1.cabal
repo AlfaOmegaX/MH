@@ -11,8 +11,8 @@ cabal-version:       >=1.10
 description:         P1 Metaheurísticas algoritmos RELIEF/BL
 synopsis:            P1 Metaheurísticas
 
-executable P1
-  hs-source-dirs:      src
+executable P1.exe
+  hs-source-dirs:      FUENTES
   main-is:             P1.hs
   other-modules:
   ghc-options:         -Wall -Wno-incomplete-patterns -Wno-missing-signatures -O2 -funbox-strict-fields -optc-O3 -optc-mfpmath=sse  -funfolding-use-threshold=16 -fexcess-precision -optc-ffast-math

@@ -3,4 +3,4 @@ resultados/
 doc/filters
 doc/*.pdf
 *resultados.txt
-BIN/*.exe
+*.exe
