@@ -362,7 +362,7 @@ ejecutarPrograma gen nombreFichero = do
     let dClasificados = separarClases dMezclados
     let particiones = eleccionCruzada gen 5 dClasificados
     resultado <- ejecutarAlgoritmos particiones gen
-    let ficheroResultado = "./resultados/" ++ takeBaseName nombreFichero ++ "_resultados.txt"
+    let ficheroResultado = takeBaseName nombreFichero ++ "_resultados.txt"
     writeFile ficheroResultado resultado
     putStrLn $ "Leído fichero " ++ nombreFichero ++ " sin errores."
   else putStrLn $ "Error: no se encuentra un archivo con el nombre " ++ nombreFichero
