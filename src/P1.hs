@@ -44,16 +44,9 @@ data Solucion = Solucion {
   getFit :: Float, -- El resultado de evaluar con la función objetivo los pesos de la solución
   getNVecinos :: Int -- El nº de vecinos obtenidos
 }
--- Crea un objeto Solucion a partir de unos datos y unos pesos
-crearSolucion :: Datos -> Pesos -> Solucion
-crearSolucion datos pesos = Solucion pesos fit 0
-  where fit = evaluarF datos pesos
--- Aumenta en un uno el nº de vecinos de una solución
-aumentaVecino :: Solucion -> Solucion
-aumentaVecino sol = Solucion (getPesos sol) (getFit sol) (getNVecinos sol + 1)
--- Definición de un evaulador de estados, con estado un generador
+-- Definición de un evaulador de estados, con estado un generador y el nº de iteraciones de Búsqueda local realizadas
 -- Esto es para obtener valores aleatorios
-type Rand a = State StdGen a
+type Rand a = State (StdGen, Int) a
 
 ---------------------------------------------------------------------------------
 -- Funciones generales
@@ -250,30 +243,37 @@ dist1c x y = abs (y - x)
 -- Búsqueda local
 busLoc :: StdGen -> Algoritmo
 busLoc gen datos = getPesos $ evalState
-  (hastaIteraciones (fParada datos) (mejorVecino datos) (pesosIniRand datos) 15000) gen
+  (hastaIteraciones datos (mejorVecino datos) (pesosIniRand datos)) (gen, 0)
 
--- Condición de parada
-fParada :: Datos -> Solucion -> Bool
-fParada datos sol = getNVecinos sol >= 20 * (nCaract datos)
+-- Bucle para seguir buscando soluciones
+hastaIteraciones :: Datos -> (Solucion -> Rand Solucion) -> Rand Solucion -> Rand Solucion
+hastaIteraciones datos f m = do
+  (_, nIter) <- get
+  x <- m
+  if (getNVecinos x >= 20 * (nCaract datos)) || (nIter >= 15000) then m else hastaIteraciones datos f (f x)
 
 -- Crea una solución inicial con pesos aleatorios
 pesosIniRand :: Datos -> Rand Solucion
 pesosIniRand datos = do
-  gen <- get
+  (gen, nIter) <- get
   let pesos = V.fromList $ take (nCaract datos) $ randomRs (0,1) gen
-  put $ snd $ next gen
+  put (snd $ next gen, nIter)
   return (crearSolucion datos pesos)
 
--- Obtengo los pesos vecinos a través de los pesos originales
-obtenerPesosVecinos :: (Float, Float) -> [Int] -> Pesos -> Rand (Pesos, [Int])
-obtenerPesosVecinos (mean, sD) indices pesos = do
-  g <- get
-  let (modif, g') = normal' (mean, sD) g
-  let (ind, g'') = randomR (0, length indices - 1) g'
-  put g''
-  let i = indices L.!! ind
-  let vNuevo = min 1 $ max 0 $ (pesos V.! i) + modif
-  return (V.update pesos (V.fromList [(i, vNuevo)]), L.delete i indices)
+-- Nos da el mejor vecino de una solución (puede ser él mismo)
+mejorVecino :: Datos -> Solucion -> Rand Solucion
+mejorVecino datos solucionAct = do
+  (solRes, _) <- hastaVecinos datos nuevoVecino (solucionAct, [0..(nCaract datos - 1)])
+  return solRes
+
+-- Bucle para seguir explorando el vecindario
+hastaVecinos :: Datos -> (Datos -> (Solucion, [Int]) -> Rand (Solucion, Solucion, [Int])) -> (Solucion, [Int]) -> Rand (Solucion, [Int])
+hastaVecinos datos f v = do
+  (_, nIter) <- get
+  (solActual, solVecina, indN) <- (f datos) v
+  if getFit solActual < getFit solVecina then return (solVecina, [])
+    else if (getNVecinos solActual >= 20 * (nCaract datos)) || (indN == []) || (nIter >= 15000) then return (solActual, [])
+      else hastaVecinos datos f (solActual, indN)
 
 -- Creo un nuevo vecino a partir de una solución
 nuevoVecino :: Datos -> (Solucion, [Int]) -> Rand (Solucion, Solucion, [Int])
@@ -283,25 +283,10 @@ nuevoVecino datos (solActual, indices) = do
   let solActualizada = aumentaVecino solActual
   return (solActualizada, crearSolucion datos pesosNuev, indNuev)
 
--- Bucle para seguir explorando el vecindario
-hastaVecinos :: Datos -> (Datos -> (Solucion, [Int]) -> Rand (Solucion, Solucion, [Int])) -> (Solucion, [Int]) -> Rand (Solucion, [Int])
-hastaVecinos datos f v = do
-  (solActual, solVecina, indN) <- (f datos) v
-  if getFit solActual < getFit solVecina then return (solVecina, [])
-    else if (getNVecinos solActual >= 20 * (nCaract datos)) || (indN == []) then return (solActual, [])
-      else hastaVecinos datos f (solActual, indN)
-
--- Nos da el mejor vecino de una solución (puede ser él mismo)
-mejorVecino :: Datos -> Solucion -> Rand Solucion
-mejorVecino datos solucionAct = do
-  (solRes, _) <- hastaVecinos datos nuevoVecino (solucionAct, [0..(nCaract datos - 1)])
-  return solRes
-
--- Bucle para seguir buscando soluciones
-hastaIteraciones :: (Solucion -> Bool) -> (Solucion -> Rand Solucion) -> Rand Solucion -> Int -> Rand Solucion
-hastaIteraciones p f m n = do
-  x <- m
-  if (p x) || (n == 0) then m else hastaIteraciones p f (f x) (n - 1)
+-- Crea un objeto Solucion a partir de unos datos y unos pesos
+crearSolucion :: Datos -> Pesos -> Solucion
+crearSolucion datos pesos = Solucion pesos fit 0
+  where fit = evaluarF datos pesos
 
 -- Evaluación 1-NN con pesos
 evaluarF :: Datos -> Pesos -> Float
@@ -309,12 +294,26 @@ evaluarF datos pesos =
   let pReduccion = (fromIntegral $ V.length $ V.filter (< 0.2) pesos) / (fromIntegral $ V.length pesos)
       pAcierto   = clas1nn datos datos pesos
   in fEvaluacion 0.5 pAcierto pReduccion
+
+-- Aumenta en un uno el nº de vecinos de una solución
+aumentaVecino :: Solucion -> Solucion
+aumentaVecino sol = Solucion (getPesos sol) (getFit sol) (getNVecinos sol + 1)
+
+-- Obtengo los pesos vecinos a través de los pesos originales
+obtenerPesosVecinos :: (Float, Float) -> [Int] -> Pesos -> Rand (Pesos, [Int])
+obtenerPesosVecinos (mean, sD) indices pesos = do
+  (g, nIter) <- get
+  let (modif, g') = normal' (mean, sD) g
+  let (ind, g'') = randomR (0, length indices - 1) g'
+  put (g'', nIter + 1)
+  let i = indices L.!! ind
+  let vNuevo = min 1 $ max 0 $ (pesos V.! i) + modif
+  return (V.update pesos (V.fromList [(i, vNuevo)]), L.delete i indices)
 ---------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------
 -- Main
 ---------------------------------------------------------------------------------
-
 -- Main
 main :: IO ()
 main = do
@@ -343,7 +342,7 @@ main = do
 -- Ejecuta todos los dataset
 ejecutarTodos :: StdGen -> IO ()
 ejecutarTodos gen = do
-  let nombresFicheros = ["./data/ionosphere.arff", "./data/datacolposcopy.arff", "./data/texture.arff"]
+  let nombresFicheros = ["./data/ionosphere.arff", "./data/colposcopy.arff", "./data/texture.arff"]
   _ <- mapM (ejecutarPrograma gen) nombresFicheros
   return ()
 
@@ -359,9 +358,8 @@ ejecutarPrograma gen nombreFichero = do
     let dClasificados = separarClases dMezclados
     let particiones = eleccionCruzada gen 5 dClasificados
     resultado <- ejecutarAlgoritmos particiones gen
-    let ficheroResultado = takeBaseName nombreFichero ++ "_resultados.txt"
+    let ficheroResultado = "./resultados/" ++ takeBaseName nombreFichero ++ "_resultados.txt"
     writeFile ficheroResultado resultado
     putStrLn $ "Leído fichero " ++ nombreFichero ++ " sin errores."
   else putStrLn $ "Error: no se encuentra un archivo con el nombre " ++ nombreFichero
-
 ---------------------------------------------------------------------------------

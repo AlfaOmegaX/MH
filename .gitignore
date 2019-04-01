@@ -1,3 +1,6 @@
 resultados/
 bin/
 .stack-work/
+doc/filters
+doc/*.pdf
+*resultados.txt
