@@ -1,4 +1,4 @@
-name:                P1
+name:                Main
 version:             1.0
 homepage:            https://github.com/AlfaOmegaX/MH
 license:             GPL-3
@@ -11,10 +11,10 @@ cabal-version:       >=1.10
 description:         P1 Metaheurísticas algoritmos RELIEF/BL
 synopsis:            P1 Metaheurísticas
 
-executable P1.exe
+executable P1bin
   hs-source-dirs:      FUENTES
-  main-is:             P1.hs
-  other-modules:
+  main-is:             Main.hs
+  other-modules:       Base, Lectura, CrossV, KNN, Ejecutar, P1
   ghc-options:         -Wall -Wno-incomplete-patterns -Wno-missing-signatures -O2 -funbox-strict-fields -optc-O3 -optc-mfpmath=sse  -funfolding-use-threshold=16 -fexcess-precision -optc-ffast-math
   default-language:    Haskell2010
   build-depends:       base >= 4.10 && < 5,

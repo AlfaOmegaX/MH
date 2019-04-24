@@ -1,0 +1,3 @@
+- colposcopy, ionosphere, texture: conjunto de datos proporcionados para la práctica
+- Makefile: makefile para compilar la práctica
+- P1.exe: ejecutable ya compilado para Windows 10
