@@ -25,8 +25,8 @@ module P2 where
     compare = compairing getFit
   -- Una población es una lista de cromosomas ordenadas por su fit
   type Poblacion = SL.SortedList Cromosoma
-  -- El operador de cruce toma los 2 padres y devuelve varios hijos
-  type OpCruce = Cromosoma -> Cromosoma -> Estado Poblacion
+  -- El operador de cruce toma los 2 padres y devuelve 2 pesos para convertir en hijos
+  type OpCruce = Cromosoma -> Cromosoma -> Estado (Pesos, Pesos)
   -- El operador de mutación toma el hijo y la posición i-ésima donde tiene que mutar y devuelve un nuevo cromosoma
   type OpMutacion = Cromosoma -> Int -> Estado Cromosoma
   -- El esquema de reemplazamiento toma la población actual, los hijos y devuelve la nueva población reemplazada
@@ -53,10 +53,8 @@ module P2 where
   mutarCromosoma :: Float -> OpMutacion
   mutarCromosoma sD hijo gen =
     do
-      (g, nIter) <- get
-      let (v, g') = min 1.0 $ max 0.0 $ normal' (0.0, sD) g
-      put (g', nIter)
-      return U.imap (\i x -> if i == gen then x + v else x) hijo
+      z <- rNormal sD
+      return U.imap (\i x -> if i == gen then min 1.0 (max 0.0 (x + z)) else x) hijo
 
   -- Operador de cruce: cruce aritmético (combinación lineal)
   cruceAritmetico :: Float -> OpCruce
@@ -78,12 +76,11 @@ module P2 where
       let (cMax, cMin) = (max i1 i2, min i1 i2)
       let l = cMax - cMin
       let (a, b) = (cMin - l * alpha, cMax + l * alpha)
-      (g, nIter) <- get
-      let [g1, g2] = take 2 $ randomRs (a, b) g
-      put (snd $ next g, nIter)
+      listaRands <- randRs
+      let (g1:g2) = take 2 $ listaRands
       return (g1, g2)
 
   -- Aux
-  separarHijos :: Vector (Gen, Gen) -> Poblacion
-  separarHijos genes = SL.toSortedList [U.fromList h1, U.fromList h2]
+  separarHijos :: U.Vector (Gen, Gen) -> (Pesos, Pesos)
+  separarHijos genes = (U.fromList h1, U.fromList h2)
     where (h1, h2) = U.foldl (\(acc1, acc2) (g1, g2) -> (acc1 ++ g1, acc2 ++ g2)) ([], []) genes

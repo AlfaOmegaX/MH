@@ -7,8 +7,10 @@ module Base where
 
   {-# LANGUAGE StrictData, Strict #-}
   import qualified Data.Vector.Unboxed as U (Vector, length)
-  import Control.Monad.State (State)
-  import System.Random (StdGen)
+  import Control.Monad.State (State, get, put)
+  import System.Random (StdGen, randomR, randomRs, next)
+  import Data.Random.Normal (normal')
+
 
   -- Una clase se puede representar como texto
   type Clase = String
@@ -29,6 +31,58 @@ module Base where
   -- Definición de un evaulador de estados, con estado un generador y el nº de iteraciones realizadas
   -- En resumen: es para obtener valores aleatorios
   type Estado a = State (StdGen, Int) a
+
+  -- Valor aleatorio uniformemente distribuido en [lo, hi]
+  randR :: (a, a) -> Estado a
+  rand (lo, hi) = do
+    g <- getGen
+    let (res, g') = randomR (lo, hi) g
+    putGen g'
+    return res
+
+  -- Valor de distribución normal con media 0.0 y desviación estandar sD
+  rNormal :: Float -> Estado a
+  rNormal sD = do
+    g <- getGen
+    let (res, g') = normal' (0.0, sD) g
+    putGen g'
+    return res
+
+  randRs :: (a, a) -> Estado [a]
+  randRs (lo, hi) = do
+    g <- getGen
+    putGen (snd $ next g)
+    return randomRs (lo, hi) g
+
+  -- Incremenenta en 1 el nº de iteraciones
+  incIter :: Estado ()
+  incIter = do
+    nIter <- getIter
+    putIter (nIter + 1)
+
+  -- Devuelve el nº de iteraciones
+  getIter :: Estado Int
+  getIter = do
+    (_, nIter) <- get
+    return nIter
+
+  -- Da el estado del generador
+  getGen :: Estado StdGen
+  getGen = do
+    (gen, _) <- get
+    return gen
+
+  -- Establece el nº de iteraciones
+  putIter :: Int -> Estado ()
+  putIter nIter = do
+    (gen, _) <- get
+    put (gen, nIter)
+
+  -- Establece el generador
+  putGen :: StdGen -> Estado ()
+  putGen gen = do
+    (_, nIter) <- get
+    put (gen, nIter)
 
   -- Devuelve el nº de características que tiene un conjunto de datos
   nCaract :: Datos -> Int
