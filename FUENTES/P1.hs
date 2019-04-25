@@ -99,8 +99,8 @@ hastaIteraciones datos f m = do
 -- Crea una solución inicial con pesos aleatorios
 pesosIniRand :: Datos -> Estado Solucion
 pesosIniRand datos = do
-  listaRands <- randRs
-  let pesos = U.fromList $ take (nCaract datos) listaRands (0.0, 1.0)
+  listaRands <- randRs (0.0, 1.0)
+  let pesos = U.fromList $ take (nCaract datos) listaRands
   incIter
   return (crearSolucion datos pesos)
 

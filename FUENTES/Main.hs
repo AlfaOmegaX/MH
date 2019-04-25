@@ -9,7 +9,6 @@ module Main where
   import Lectura
   import CrossV
   import Ejecutar
-  import P1
   import System.Directory (doesFileExist)
   import System.Environment (getArgs)
   import System.FilePath.Posix (takeBaseName)

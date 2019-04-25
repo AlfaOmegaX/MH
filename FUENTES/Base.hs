@@ -8,7 +8,7 @@ module Base where
   {-# LANGUAGE StrictData, Strict #-}
   import qualified Data.Vector.Unboxed as U (Vector, length)
   import Control.Monad.State (State, get, put)
-  import System.Random (StdGen, randomR, randomRs, next)
+  import System.Random (Random, StdGen, randomR, randomRs, next)
   import Data.Random.Normal (normal')
 
 
@@ -33,26 +33,26 @@ module Base where
   type Estado a = State (StdGen, Int) a
 
   -- Valor aleatorio uniformemente distribuido en [lo, hi]
-  randR :: (a, a) -> Estado a
-  rand (lo, hi) = do
+  randR :: (Random a) => (a, a) -> Estado a
+  randR (lo, hi) = do
     g <- getGen
     let (res, g') = randomR (lo, hi) g
     putGen g'
     return res
 
   -- Valor de distribución normal con media 0.0 y desviación estandar sD
-  rNormal :: Float -> Estado a
+  rNormal :: Float -> Estado Float
   rNormal sD = do
     g <- getGen
     let (res, g') = normal' (0.0, sD) g
     putGen g'
     return res
 
-  randRs :: (a, a) -> Estado [a]
+  randRs :: (Random a) => (a, a) -> Estado [a]
   randRs (lo, hi) = do
     g <- getGen
     putGen (snd $ next g)
-    return randomRs (lo, hi) g
+    return $ randomRs (lo, hi) g
 
   -- Incremenenta en 1 el nº de iteraciones
   incIter :: Estado ()
