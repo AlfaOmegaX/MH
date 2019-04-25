@@ -14,7 +14,7 @@ synopsis:            P1 Metaheurísticas
 executable P1bin
   hs-source-dirs:      FUENTES
   main-is:             Main.hs
-  other-modules:       Base, Lectura, CrossV, KNN, Ejecutar, P1
+  other-modules:       Base, Lectura, CrossV, KNN, Ejecutar, P1, P2
   ghc-options:         -Wall -Wno-incomplete-patterns -Wno-missing-signatures -O2 -funbox-strict-fields -optc-O3 -optc-mfpmath=sse  -funfolding-use-threshold=16 -fexcess-precision -optc-ffast-math
   default-language:    Haskell2010
   build-depends:       base >= 4.10 && < 5,
@@ -27,4 +27,5 @@ executable P1bin
                        normaldistribution >= 1.1.0.3,
                        filepath >= 1.4,
                        deepseq >= 1.4,
-                       mtl >= 2.2.2
+                       mtl >= 2.2.2,
+                       sorted-list >= 0.2
