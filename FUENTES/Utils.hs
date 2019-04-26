@@ -11,10 +11,27 @@ module Utils where
   import System.Random (Random, StdGen, randomR, randomRs, next)
   import Data.Random.Normal (normal')
 
+
+  ---------------------------------------------------------------------------------
+  -- Bucles de control
+  ---------------------------------------------------------------------------------
+  -- Hasta que se cumpla el predicado p aplica f con valor inicial m
+  untilM :: (Monad m) => (a -> m Bool) -> (a -> m a) -> m a -> m a
+  untilM p f m =
+    do
+      x <- m
+      y <- p x
+      if y then m else untilM p f (f x)
+
+  maxIteraciones :: Int -> a -> Estado Bool
+  maxIteraciones maxIter a =
+    do
+      n <- getIter
+      return $ n > maxIter
+
   ---------------------------------------------------------------------------------
   -- Funciones para soluciones
   ---------------------------------------------------------------------------------
-
   -- Crea un objeto Solucion a partir de unos datos y unos pesos
   crearSolucion :: Datos -> Pesos -> Estado Solucion
   crearSolucion datos pesos =

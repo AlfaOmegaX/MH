@@ -4,3 +4,4 @@ doc/filters
 doc/*.pdf
 *resultados.txt
 *.exe
+*bin

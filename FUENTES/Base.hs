@@ -63,14 +63,20 @@ module Base where
   type Cromosoma = Solucion
   -- Una población es un conjunto de cromosomas
   type Poblacion = Set Cromosoma
-  -- El operador de cruce toma los 2 padres y devuelve 2 pesos para convertir en hijos
-  type OpCruce = Cromosoma -> Cromosoma -> Estado (Cromosoma, Cromosoma)
-  -- El operador de mutación toma el hijo y la posición i-ésima donde tiene que mutar y devuelve un nuevo cromosoma
-  type OpMutacion = Cromosoma -> Int -> Estado Cromosoma
-  -- El esquema de reemplazamiento toma la población actual, los hijos y devuelve la nueva población reemplazada
-  type EsqReemplazamiento = Poblacion -> Poblacion -> Poblacion
+  -- Esquema creación población inicial: nº de poblacion y los datos para crearla
+  type EsqInicial = Int -> Datos -> Estado Poblacion
   -- Esquema de seleccion: toma la población y devuelve los padres que van a cruzarse (sin ordenar)
   type EsqSeleccion = Poblacion -> Estado [Cromosoma]
+  -- El operador de cruce toma los 2 padres y devuelve 2 pesos para convertir en hijos
+  type OpCruce = Cromosoma -> Cromosoma -> Estado (Pesos, Pesos)
+  -- Esquema de cruce: toma los padres que van a cruzarse y devuelve la nueva población de hijos usando el op de cruce
+  type EsqCruce = OpCruce -> [Cromosoma] -> Estado Poblacion
+  -- El operador de mutación toma el hijo y la posición i-ésima donde tiene que mutar y devuelve un nuevo cromosoma
+  type OpMutacion = Cromosoma -> Int -> Estado Cromosoma
+  -- Esquema de mutación: toma la población y devuelve la población mutada con el operador de mutación
+  type EsqMutacion = OpMutacion -> Poblacion -> Estado Poblacion
+  -- El esquema de reemplazamiento toma la población actual, los hijos y devuelve la nueva población reemplazada
+  type EsqReemp = Poblacion -> Poblacion -> Estado Poblacion
   -----------------------------------------------------------------------------
 
   -----------------------------------------------------------------------------

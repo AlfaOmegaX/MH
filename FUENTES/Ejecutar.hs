@@ -8,8 +8,8 @@ module Ejecutar where
   {-# LANGUAGE StrictData, Strict #-}
   import Base
   import KNN
-  import P1 (algoritmosP1)
-  --import P2 (algoritmosP2)
+  --import P1 (algoritmosP1)
+  import P2 (algoritmosP2)
   import qualified Data.Vector.Unboxed as U (length, filter)
   import System.Random (StdGen)
   import System.Clock (Clock(Realtime), getTime, toNanoSecs)
@@ -21,7 +21,7 @@ module Ejecutar where
   -- Ejecuta todos los algoritmos que se tienen y devuelve el resultado de todos
   ejecutarAlgoritmos :: Particiones -> StdGen -> IO String
   ejecutarAlgoritmos particiones gen = do
-      resultados <- mapM (ejecuta particiones) (algoritmosP1 gen)
+      resultados <- mapM (ejecuta particiones) (algoritmosP2 gen)
       return $ init $ init $ unlines resultados
 
   -- Ejecuta los algoritmos en cada partición y devuelve un mensaje con todos los resultados
