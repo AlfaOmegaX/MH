@@ -7,9 +7,9 @@ module Base where
 
   {-# LANGUAGE StrictData, Strict #-}
   import qualified Data.Vector.Unboxed as U (Vector, length)
-  import Control.Monad.State (State, get, put)
-  import System.Random (Random, StdGen, randomR, randomRs, next)
-  import Data.Random.Normal (normal')
+  import Control.Monad.State (State)
+  import System.Random (StdGen)
+  import Data.Set(Set)
 
 
   -- Una clase se puede representar como texto
@@ -32,57 +32,50 @@ module Base where
   -- En resumen: es para obtener valores aleatorios
   type Estado a = State (StdGen, Int) a
 
-  -- Valor aleatorio uniformemente distribuido en [lo, hi]
-  randR :: (Random a) => (a, a) -> Estado a
-  randR (lo, hi) = do
-    g <- getGen
-    let (res, g') = randomR (lo, hi) g
-    putGen g'
-    return res
+  -----------------------------------------------------------------------------
+  -- P1
+  -----------------------------------------------------------------------------
+  -- Una solución con el valor fit guardado (y nº de vecinos creados para BL)
+  data Solucion = Solucion {
+    getPesos :: Pesos, -- La solución propiamente dicha (los pesos)
+    getFit :: Float, -- El resultado de evaluar con la función objetivo los pesos de la solución
+    getNVecinos :: Int -- Nº de vecinos en BL
+  }
 
-  -- Valor de distribución normal con media 0.0 y desviación estandar sD
-  rNormal :: Float -> Estado Float
-  rNormal sD = do
-    g <- getGen
-    let (res, g') = normal' (0.0, sD) g
-    putGen g'
-    return res
+  -- Para evitar que se eliminen soluciones duplicadas
+  instance Eq Solucion where
+    _ == _ = False
 
-  randRs :: (Random a) => (a, a) -> Estado [a]
-  randRs (lo, hi) = do
-    g <- getGen
-    putGen (snd $ next g)
-    return $ randomRs (lo, hi) g
+  -- Para ordenar soluciones segun su fit
+  instance Ord Solucion where
+    (Solucion _ f1 _) <= (Solucion _ f2 _) = f1 <= f2
+    (Solucion _ f1 _) > (Solucion _ f2 _) = f1 > f2
+    compare s1 s2
+      | s1 <= s2  = LT
+      | otherwise = GT
+    max s1 s2 = if getFit s1 > getFit s2 then s1 else s2
+  -----------------------------------------------------------------------------
+  -- P2
+  -----------------------------------------------------------------------------
+  -- Un gen es un valor real
+  type Gen = Float
+  -- Un cromosoma será una solución (pesos) con el valor de la función objetivo (de menor a mayor)
+  type Cromosoma = Solucion
+  -- Una población es un conjunto de cromosomas
+  type Poblacion = Set Cromosoma
+  -- El operador de cruce toma los 2 padres y devuelve 2 pesos para convertir en hijos
+  type OpCruce = Cromosoma -> Cromosoma -> Estado (Cromosoma, Cromosoma)
+  -- El operador de mutación toma el hijo y la posición i-ésima donde tiene que mutar y devuelve un nuevo cromosoma
+  type OpMutacion = Cromosoma -> Int -> Estado Cromosoma
+  -- El esquema de reemplazamiento toma la población actual, los hijos y devuelve la nueva población reemplazada
+  type EsqReemplazamiento = Poblacion -> Poblacion -> Poblacion
+  -- Esquema de seleccion: toma la población y devuelve los padres que van a cruzarse (sin ordenar)
+  type EsqSeleccion = Poblacion -> Estado [Cromosoma]
+  -----------------------------------------------------------------------------
 
-  -- Incremenenta en 1 el nº de iteraciones
-  incIter :: Estado ()
-  incIter = do
-    nIter <- getIter
-    putIter (nIter + 1)
-
-  -- Devuelve el nº de iteraciones
-  getIter :: Estado Int
-  getIter = do
-    (_, nIter) <- get
-    return nIter
-
-  -- Da el estado del generador
-  getGen :: Estado StdGen
-  getGen = do
-    (gen, _) <- get
-    return gen
-
-  -- Establece el nº de iteraciones
-  putIter :: Int -> Estado ()
-  putIter nIter = do
-    (gen, _) <- get
-    put (gen, nIter)
-
-  -- Establece el generador
-  putGen :: StdGen -> Estado ()
-  putGen gen = do
-    (_, nIter) <- get
-    put (gen, nIter)
+  -----------------------------------------------------------------------------
+  -- Funciones básicas
+  -----------------------------------------------------------------------------
 
   -- Devuelve el nº de características que tiene un conjunto de datos
   nCaract :: Datos -> Int

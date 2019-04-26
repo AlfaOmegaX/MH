@@ -8,7 +8,7 @@ module P1 where
 
 {-# LANGUAGE StrictData, Strict #-}
 import Base
-import KNN
+import Utils
 import qualified Data.Vector.Unboxed as U (fromList, replicate, map, maximum, minimum, zipWith, zipWith4, sum, update, (!))
 import Data.List ((\\), sortBy, find, delete, (!!))
 import Data.Maybe (fromJust)
@@ -19,22 +19,6 @@ import Control.Monad.State (evalState)
 -- Lista de algoritmos
 algoritmosP1 :: StdGen -> [(String, Algoritmo)]
 algoritmosP1 gen = [("Pesos aleatorios", pesosRand gen), ("Pesos Uno", pesosUno), ("Relief", relief),  ("Busqueda local", busLoc gen)]
-
--- Estructura de datos para encapsular una solución en la búsqueda local
-data Solucion = Solucion {
-  getPesos :: Pesos, -- La solución propiamente dicha (los pesos)
-  getFit :: Float, -- El resultado de evaluar con la función objetivo los pesos de la solución
-  getNVecinos :: Int -- El nº de vecinos obtenidos
-}
-
--- Crea un objeto Solucion a partir de unos datos y unos pesos
-crearSolucion :: Datos -> Pesos -> Solucion
-crearSolucion datos pesos = Solucion pesos fit 0
-  where fit = evaluarF datos pesos
-
--- Aumenta en un uno el nº de vecinos de una solución
-aumentaVecino :: Solucion -> Solucion
-aumentaVecino sol = Solucion (getPesos sol) (getFit sol) (getNVecinos sol + 1)
 
 ---------------------------------------------------------------------------------
 -- Pesos aleatorios
@@ -101,8 +85,7 @@ pesosIniRand :: Datos -> Estado Solucion
 pesosIniRand datos = do
   listaRands <- randRs (0.0, 1.0)
   let pesos = U.fromList $ take (nCaract datos) listaRands
-  incIter
-  return (crearSolucion datos pesos)
+  crearSolucion datos pesos
 
 -- Nos da el mejor vecino de una solución (puede ser él mismo)
 mejorVecino :: Datos -> Solucion -> Estado Solucion
@@ -125,8 +108,8 @@ nuevoVecino datos (solActual, indices) = do
   let pesosOrig = getPesos solActual
   (pesosNuev, indNuev) <- obtenerPesosVecinos 0.3 indices pesosOrig
   let solActualizada = aumentaVecino solActual
-  incIter
-  return (solActualizada, crearSolucion datos pesosNuev, indNuev)
+  nuevaSol <- crearSolucion datos pesosNuev
+  return (solActualizada, nuevaSol, indNuev)
 
 -- Obtengo los pesos vecinos a través de los pesos originales
 obtenerPesosVecinos :: Float -> [Int] -> Pesos -> Estado (Pesos, [Int])

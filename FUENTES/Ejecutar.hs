@@ -9,7 +9,7 @@ module Ejecutar where
   import Base
   import KNN
   import P1 (algoritmosP1)
-  import P2
+  --import P2 (algoritmosP2)
   import qualified Data.Vector.Unboxed as U (length, filter)
   import System.Random (StdGen)
   import System.Clock (Clock(Realtime), getTime, toNanoSecs)
