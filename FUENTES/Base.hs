@@ -37,14 +37,14 @@ module Base where
   -----------------------------------------------------------------------------
   -- Una solución con el valor fit guardado (y nº de vecinos creados para BL)
   data Solucion = Solucion {
-    getPesos :: Pesos, -- La solución propiamente dicha (los pesos)
-    getFit :: Float, -- El resultado de evaluar con la función objetivo los pesos de la solución
+    getPesos :: !Pesos, -- La solución propiamente dicha (los pesos)
+    getFit :: !Float, -- El resultado de evaluar con la función objetivo los pesos de la solución
     getNVecinos :: Int -- Nº de vecinos en BL
   }
 
   -- Para evitar que se eliminen soluciones duplicadas
   instance Eq Solucion where
-    _ == _ = False
+    (Solucion p1 _ _) == (Solucion p2 _ _) = p1 == p2
 
   -- Para ordenar soluciones segun su fit
   instance Ord Solucion where
@@ -61,8 +61,8 @@ module Base where
   type Gen = Float
   -- Un cromosoma será una solución (pesos) con el valor de la función objetivo (de menor a mayor)
   type Cromosoma = Solucion
-  -- Una población es un conjunto de cromosomas
-  type Poblacion = Set Cromosoma
+  -- Una población es una lista de cromosomas
+  type Poblacion = [Cromosoma]
   -- Esquema creación población inicial: nº de poblacion y los datos para crearla
   type EsqInicial = Int -> Datos -> Estado Poblacion
   -- Esquema de seleccion: toma la población y devuelve los padres que van a cruzarse (sin ordenar)

@@ -10,18 +10,31 @@ module Utils where
   import Control.Monad.State (get, put)
   import System.Random (Random, StdGen, randomR, randomRs, next)
   import Data.Random.Normal (normal')
+  --import Debug.Trace
 
 
   ---------------------------------------------------------------------------------
   -- Bucles de control
   ---------------------------------------------------------------------------------
   -- Hasta que se cumpla el predicado p aplica f con valor inicial m
-  untilM :: (Monad m) => (a -> m Bool) -> (a -> m a) -> m a -> m a
-  untilM p f m =
-    do
-      x <- m
-      y <- p x
-      if y then m else untilM p f (f x)
+  hastaQueM :: Monad m => (a -> m Bool) -> (a -> m a) -> m a -> m a
+  hastaQueM p f = bucleM
+    where
+      bucleM m =
+        do
+          x <- m
+          y <- p x
+          if y then m else bucleM (f x)
+
+  repiteNM :: Monad m => Int -> (a -> m a) -> a -> m a
+  repiteNM 0 _ x = return x
+  repiteNM n f x = bucleM n (return x)
+    where
+      bucleM i m =
+        do
+          v <- m
+          if i > 0 then bucleM (i - 1) (f v) else m
+
 
   maxIteraciones :: Int -> a -> Estado Bool
   maxIteraciones maxIter a =
@@ -34,7 +47,7 @@ module Utils where
   ---------------------------------------------------------------------------------
   -- Crea un objeto Solucion a partir de unos datos y unos pesos
   crearSolucion :: Datos -> Pesos -> Estado Solucion
-  crearSolucion datos pesos =
+  crearSolucion !datos !pesos =
     do
       incIter
       return $ Solucion pesos (evaluarF datos pesos) 0

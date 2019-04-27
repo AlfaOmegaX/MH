@@ -40,7 +40,7 @@ module KNN where
 
   -- Evaluación 1-NN con pesos ~ para algoritmos
   evaluarF :: Datos -> Pesos -> Float
-  evaluarF datos pesos =
+  evaluarF !datos !pesos =
     let pReduccion = (fromIntegral $ U.length $ U.filter (< 0.2) pesos) / (fromIntegral $ U.length pesos)
         pAcierto   = clas1nn datos datos pesos
     in fEvaluacion 0.5 pAcierto pReduccion

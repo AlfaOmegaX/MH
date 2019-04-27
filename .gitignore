@@ -5,3 +5,5 @@ doc/*.pdf
 *resultados.txt
 *.exe
 *bin
+BIN/ghc-mod*
+BIN/stylish*

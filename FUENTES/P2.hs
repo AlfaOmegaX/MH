@@ -8,17 +8,16 @@ module P2 where
   {-# LANGUAGE StrictData, Strict #-}
   import Base
   import Utils
-  import qualified Data.Set as S (deleteMin, findMax, splitAt, insert, union, null, filter, elemAt, fromList, unions, empty, deleteAt)
+  --import qualified Data.Set as S (deleteMin, findMax, splitAt, insert, union, null, filter, elemAt, fromList, unions, empty, deleteAt)
   import qualified Data.Vector.Unboxed as U (Vector, imap, fromList, foldl, zipWithM, zipWith, empty, length)
-  import Data.List (genericLength)
+  import Data.List (genericLength, sort, delete, maximum, minimum)
   import Control.Monad (zipWithM, replicateM)
-  import Control.Monad.Extra (iterateM)
   import System.Random (StdGen)
   import Control.Monad.State (evalState)
-  import Debug.Trace
+  --import Debug.Trace
 
   algoritmosP2 :: StdGen -> [(String, Algoritmo)]
-  algoritmosP2 gen = [("AGG-BLX", aggBlx gen), ("AGG-CA", aggCa gen), ("AGE-BLX", ageBlx gen), ("AGE-CA", ageCa gen)]
+  algoritmosP2 gen = [("AGG-BLX", aggBlx gen),("AGG-CA", aggCa gen), ("AGE-BLX", ageBlx gen), ("AGE-CA", ageCa gen)]
 
   -- Genético generacional con cruce BLX
   aggBlx :: StdGen -> Algoritmo
@@ -38,11 +37,19 @@ module P2 where
 
   -- Esquema general de un algoritmo genético
   algGenetico :: Float -> Int -> OpCruce -> Float -> Int -> EsqReemp -> StdGen -> Algoritmo
-  algGenetico pMut nPob opCruce pCruce nParejas esqReemp gen datos = getPesos $ S.findMax $ evalState (untilM (maxIteraciones 15000) generarPob (crearPobIni nPob datos)) (gen, 0)
-    where generarPob pob = (seleccion nParejas pob) >>= (cruce (round (pCruce * fromIntegral nParejas)) datos opCruce) >>= mutacion (round (pMut * (fromIntegral nPob) * (fromIntegral $ nCaract datos))) (mutNormal 0.3 datos) >>= (esqReemp pob)
+  --algGenetico pMut nPob opCruce pCruce nParejas esqReemp gen datos | trace ("alggenetico" ++ show (nCaract datos)  ) False = undefined
+  algGenetico pMut nPob opCruce pCruce nParejas esqReemp gen datos = getPesos $ maximum $ evalState (hastaQueM (maxIteraciones 15000) generarPob (crearPobIni nPob datos)) (gen, 0)
+    where
+      generarPob pob =
+        do
+          padres <- seleccion nParejas pob
+          hijos <- cruce (round (pCruce * fromIntegral nParejas)) datos opCruce padres
+          hMut <- mutacion (round (pMut * (fromIntegral nPob) * (fromIntegral $ nCaract datos))) (mutNormal 0.3 datos) hijos
+          esqReemp pob hMut
 
   -- Crea los cromosomas iniciales (aleatorios)
   crearCromIni :: Datos -> Estado Cromosoma
+  --crearCromIni datos | trace ("crearCromIni") False = undefined
   crearCromIni datos =
     do
       nRandoms <- randRs (0.0, 1.0)
@@ -51,13 +58,12 @@ module P2 where
 
   -- Esquema de creación población iniciaL: crea nPob cromosomas
   crearPobIni :: EsqInicial
-  crearPobIni nPob datos =
-    do
-      cromosomas <- replicateM nPob (crearCromIni datos)
-      return $ S.fromList cromosomas
+  crearPobIni nPob datos = replicateM nPob (crearCromIni datos)
 
   -- Esquema de selección: Tomamos la población y seleccionamos el nº de padres (se toman tantas parejas como nParejas)
   seleccion :: Int -> EsqSeleccion
+  --seleccion nParejas pob | trace("hola") False = undefined
+  --seleccion nParejas pob = replicateM (nParejas * 2) (torneoN 2 pob)
   seleccion nParejas pob = replicateM (nParejas * 2) (torneoN 2 pob)
 
   -- Esquema de cruce: tomamos la población y juntamos las nCruces parejas, uniendo el primero con el N / 2 y así
@@ -67,11 +73,10 @@ module P2 where
       let (padres1, padres2) = splitAt (round $ genericLength padres / (2 :: Double)) padres
       let (cruce1, noCruce1) = splitAt nCruces padres1
       let (cruce2, noCruce2) = splitAt nCruces padres2
-      let x = traceId "hola"
       hijosP <- zipWithM opCruce cruce1 cruce2
       hijos <- mapM (convertirHijos datos) hijosP
-      let nPob = foldl (\acc (h1, h2) -> S.insert h2 $ S.insert h1 acc) S.empty hijos
-      return $ S.unions [nPob, S.fromList noCruce1, S.fromList noCruce2]
+      let nPob = foldl (\acc (h1, h2) -> h1:h2:acc) [] hijos
+      return $ nPob ++ noCruce1 ++ noCruce2
 
 -- Transforma el par de pesos en par de cromosomas
   convertirHijos :: Datos -> (Pesos, Pesos) -> Estado (Cromosoma, Cromosoma)
@@ -83,42 +88,41 @@ module P2 where
 
   -- Esquema de mutación: tomamos la población y mutamos aleatoriamente tantas veces como nMut y con el op mutación
   mutacion :: Int -> EsqMutacion
-  mutacion nMut opMut pob =
-    do
-      res <- iterateM (mutarCromosoma opMut) pob
-      return (res !! nMut)
+  mutacion nMut opMut pob = repiteNM nMut (mutarCromosoma opMut) pob
 
   -- Sacamos un cromosoma aleatorio y un indice aleatorio de su gen a mutar
   mutarCromosoma :: OpMutacion -> Poblacion -> Estado Poblacion
+  --mutarCromosoma opMut pob | trace ("Muto") False = undefined
   mutarCromosoma opMut pob =
     do
       iCro <- randR (0, length pob - 1)
-      let cromosoma = S.elemAt iCro pob
+      let cromosoma = pob !! iCro
       iGen <- randR (0, U.length (getPesos cromosoma) - 1)
       cNuevo <- opMut cromosoma iGen
-      return $ S.insert cNuevo $ S.deleteAt iCro pob
+      return $ (delete cromosoma pob) ++ [cNuevo]
 
   -- Se escogen n individuos aleatoriamente de la población y se devuelve el que tenga mejor
   torneoN :: Int -> Poblacion -> Estado Cromosoma
   torneoN n pob =
     do
       indRand <- randRs (0, length pob - 1)
-      let inds = take n $ indRand
-      return $ foldl (\acc i -> max acc (S.elemAt i pob)) (Solucion U.empty 0.0 0) inds
+      let inds = take n indRand
+      return $ foldl (\acc i -> max acc (pob !! i)) (Solucion U.empty 0.0 0) inds
 
   -- Esquema de reemplazamiento: los hijos reemplazan la población y si el mejor
   -- de la población anterior no está, se reemplaza por el peor hijo
+  --
   reempGeneracional :: EsqReemp
+  --reempGeneracional pActual hijos | trace ("reem") False = undefined
   reempGeneracional pActual hijos =
-    if S.null $ S.filter (\x -> getPesos x == getPesos mejorP) hijos
+    if elem mejorP hijos
       then return hijos
-      else return $ S.insert mejorP (S.deleteMin hijos)
-    where mejorP = S.findMax pActual
+      else return $ (delete (minimum hijos) hijos) ++ [mejorP]
+    where mejorP = maximum pActual
 
   -- Esquema de reemplazamiento: tipo estacionario - metemos a los dos hijos y se eliminan los 2 peores
   reempEstacionario :: EsqReemp
-  reempEstacionario pActual hijos = return pNueva
-    where (_, pNueva) = S.splitAt 2 $ S.union pActual hijos
+  reempEstacionario pActual hijos = return $ drop 2 $ sort $ pActual ++ hijos
 
   -- Operador de mutación: Mutamos el hijo en la posición gen-ésima con desviación estandar sD
   mutNormal :: Float -> Datos -> OpMutacion
