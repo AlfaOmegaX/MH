@@ -7,3 +7,4 @@ doc/*.pdf
 *bin
 BIN/ghc-mod*
 BIN/stylish*
+*.prof

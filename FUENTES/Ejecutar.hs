@@ -34,7 +34,7 @@ module Ejecutar where
       let aciMedio                    = tAci / fromIntegral n
       let redMedio                    = tRed / fromIntegral n
       let tMedio                      = t / fromIntegral n
-      return $ mensaje ++ "Acierto medio: " ++ show aciMedio ++ " %, reduccion media: " ++ show redMedio ++ " %, evalucion media: " ++ show (fEvaluacion 0.5 aciMedio redMedio) ++ ", tiempo medio: " ++ show tMedio ++ "s\n"
+      return $ mensaje ++ "Acierto medio: " ++ show aciMedio ++ " %, reduccion media: " ++ show redMedio ++ " %, evaluacion media: " ++ show (fEvaluacion 0.5 aciMedio redMedio) ++ ", tiempo medio: " ++ show tMedio ++ "s\n"
 
   -- Formateo de mensaje de salida
   crearInfo :: (Float, Float, Float, Int, String) -> (Float, Float, Float) -> (Float, Float, Float, Int, String)

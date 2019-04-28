@@ -9,7 +9,6 @@ module Base where
   import qualified Data.Vector.Unboxed as U (Vector, length)
   import Control.Monad.State (State)
   import System.Random (StdGen)
-  import Data.Set(Set)
 
 
   -- Una clase se puede representar como texto
@@ -37,12 +36,12 @@ module Base where
   -----------------------------------------------------------------------------
   -- Una solución con el valor fit guardado (y nº de vecinos creados para BL)
   data Solucion = Solucion {
-    getPesos :: !Pesos, -- La solución propiamente dicha (los pesos)
-    getFit :: !Float, -- El resultado de evaluar con la función objetivo los pesos de la solución
+    getPesos :: Pesos, -- La solución propiamente dicha (los pesos)
+    getFit :: Float, -- El resultado de evaluar con la función objetivo los pesos de la solución
     getNVecinos :: Int -- Nº de vecinos en BL
   }
 
-  -- Para evitar que se eliminen soluciones duplicadas
+  -- Dos soluciones son iguales si tienen los mismos pesos
   instance Eq Solucion where
     (Solucion p1 _ _) == (Solucion p2 _ _) = p1 == p2
 

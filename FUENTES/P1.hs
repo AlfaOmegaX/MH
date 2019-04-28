@@ -9,12 +9,11 @@ module P1 where
 {-# LANGUAGE StrictData, Strict #-}
 import Base
 import Utils
-import qualified Data.Vector.Unboxed as U (fromList, replicate, map, maximum, minimum, zipWith, zipWith4, sum, update, (!))
-import Data.List ((\\), sortBy, find, delete, (!!))
+import qualified Data.Vector.Unboxed as U (fromList, replicate, map, maximum, minimum, zipWith, zipWith4, sum, imap)
+import Data.List (sortBy, find, delete, (!!))
 import Data.Maybe (fromJust)
 import System.Random (StdGen, randoms)
 import Control.Monad.State (evalState)
---import Debug.Trace
 
 -- Lista de algoritmos
 algoritmosP1 :: StdGen -> [(String, Algoritmo)]
@@ -49,7 +48,7 @@ relief trainData =
 -- Usa el punto y actualiza los pesos segun la distancia, coordenada a coordenada del mas cercano de su clase y distinto de su clase
 actualizaPesos :: Dato -> Datos -> Pesos -> Pesos
 actualizaPesos p datos =
-  let trainData          = datos \\ [p]
+  let trainData          = delete p datos
       distIndice         = zipWith (\x y -> (dist1 p x, y)) trainData [0..(length trainData - 1)]
       distancias         = sortBy (\(x,_) (y,_) -> compare x y) distIndice
       iAmigo             = snd $ fromJust $ find (\(_,x) -> snd (trainData !! x) == snd p) $ tail distancias
@@ -70,53 +69,31 @@ dist1c x y = abs (y - x)
 ---------------------------------------------------------------------------------
 -- Búsqueda local
 busLoc :: StdGen -> Algoritmo
-busLoc gen datos = getPesos $ evalState
-  (hastaIteraciones datos (mejorVecino datos) (pesosIniRand datos)) (gen, 0)
-
--- Bucle para seguir buscando soluciones
-hastaIteraciones :: Datos -> (Solucion -> Estado Solucion) -> Estado Solucion -> Estado Solucion
-hastaIteraciones datos f m = do
-  nIter <- getIter
-  x <- m
-  if (getNVecinos x >= 20 * (nCaract datos)) || (nIter >= 15000) then m else hastaIteraciones datos f (f x)
+busLoc gen datos = getPesos $ fst $ evalState
+  (hastaQueM (condParada 15000 (20 * nCaract datos) . fst) (crearVecino datos) (pesosIniRand datos)) (gen, 0)
 
 -- Crea una solución inicial con pesos aleatorios
-pesosIniRand :: Datos -> Estado Solucion
+pesosIniRand :: Datos -> Estado (Solucion, [Int])
 pesosIniRand datos = do
   listaRands <- randRs (0.0, 1.0)
   let pesos = U.fromList $ take (nCaract datos) listaRands
-  crearSolucion datos pesos
-
--- Nos da el mejor vecino de una solución (puede ser él mismo)
-mejorVecino :: Datos -> Solucion -> Estado Solucion
-mejorVecino datos solucionAct = do
-  (solRes, _) <- hastaVecinos datos nuevoVecino (solucionAct, [0..(nCaract datos - 1)])
-  return solRes
-
--- Bucle para seguir explorando el vecindario
-hastaVecinos :: Datos -> (Datos -> (Solucion, [Int]) -> Estado (Solucion, Solucion, [Int])) -> (Solucion, [Int]) -> Estado (Solucion, [Int])
-hastaVecinos datos f v = do
-  nIter <- getIter
-  (solActual, solVecina, indN) <- (f datos) v
-  if getFit solActual < getFit solVecina then return (solVecina, [])
-    else if (getNVecinos solActual >= 20 * (nCaract datos)) || (indN == []) || (nIter >= 15000) then return (solActual, [])
-      else hastaVecinos datos f (solActual, indN)
+  sol <- crearSolucion datos pesos
+  return (sol, [0..(nCaract datos - 1)])
 
 -- Creo un nuevo vecino a partir de una solución
-nuevoVecino :: Datos -> (Solucion, [Int]) -> Estado (Solucion, Solucion, [Int])
-nuevoVecino datos (solActual, indices) = do
-  let pesosOrig = getPesos solActual
-  (pesosNuev, indNuev) <- obtenerPesosVecinos 0.3 indices pesosOrig
-  let solActualizada = aumentaVecino solActual
-  nuevaSol <- crearSolucion datos pesosNuev
-  return (solActualizada, nuevaSol, indNuev)
+crearVecino :: Datos -> (Solucion, [Int]) -> Estado (Solucion, [Int])
+crearVecino datos (sol, indices) = do
+  (solNueva, solAct, indNuev) <- obtenerVecino 0.3 datos indices sol
+  let indNuev' = if solNueva > solAct || indNuev == [] then [0..(nCaract datos - 1)] else indNuev
+  return (max solNueva solAct, indNuev')
 
--- Obtengo los pesos vecinos a través de los pesos originales
-obtenerPesosVecinos :: Float -> [Int] -> Pesos -> Estado (Pesos, [Int])
-obtenerPesosVecinos sD indices pesos = do
-  modif <- rNormal sD
-  ind <- randR (0, length indices - 1)
-  let i = indices !! ind
-  let vNuevo = min 1.0 $ max 0.0 $ (pesos U.! i) + modif
-  return (U.update pesos (U.fromList [(i, vNuevo)]), delete i indices)
+-- Obtengo una nueva solución del vecindario de la solución actual
+obtenerVecino :: Float -> Datos -> [Int] -> Solucion -> Estado (Solucion, Solucion, [Int])
+obtenerVecino sD datos indices sol = do
+  inds <- randR (0, length indices - 1)
+  let ind = indices !! inds
+  z <- rNormal sD
+  let pesosN = U.imap (\i x -> if i == ind then min 1.0 (max 0.0 (x + z)) else x) $ getPesos sol
+  nuevaSol <- crearSolucion datos pesosN
+  return (nuevaSol, aumentaVecino sol, delete ind indices)
 ---------------------------------------------------------------------------------

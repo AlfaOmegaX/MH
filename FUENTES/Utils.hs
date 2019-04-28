@@ -4,13 +4,13 @@ Author      : Miguel Lentisco Ballesteros
 Description : Implementa tipos y funciones útiles para todas las prácticas
 -}
 module Utils where
+
   {-# LANGUAGE StrictData, Strict #-}
   import Base
   import KNN
   import Control.Monad.State (get, put)
   import System.Random (Random, StdGen, randomR, randomRs, next)
   import Data.Random.Normal (normal')
-  --import Debug.Trace
 
 
   ---------------------------------------------------------------------------------
@@ -36,11 +36,21 @@ module Utils where
           if i > 0 then bucleM (i - 1) (f v) else m
 
 
-  maxIteraciones :: Int -> a -> Estado Bool
-  maxIteraciones maxIter a =
+  maxIteraciones :: Int -> Estado Bool
+  maxIteraciones maxIter =
     do
       n <- getIter
-      return $ n > maxIter
+      return $ n >= maxIter
+
+  maxVecinos :: Int -> Solucion -> Bool
+  maxVecinos maxVec sol = getNVecinos sol >= maxVec
+
+  condParada :: Int -> Int -> Solucion -> Estado Bool
+  condParada maxIter maxVec sol =
+    do
+      c <- maxIteraciones maxIter
+      return $ c || maxVecinos maxVec sol
+
 
   ---------------------------------------------------------------------------------
   -- Funciones para soluciones
