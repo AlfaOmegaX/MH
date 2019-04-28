@@ -8,3 +8,4 @@ doc/*.pdf
 BIN/ghc-mod*
 BIN/stylish*
 *.prof
+BIN/RESULTADOS/*

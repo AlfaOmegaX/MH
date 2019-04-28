@@ -12,7 +12,6 @@ module Utils where
   import System.Random (Random, StdGen, randomR, randomRs, next)
   import Data.Random.Normal (normal')
 
-
   ---------------------------------------------------------------------------------
   -- Bucles de control
   ---------------------------------------------------------------------------------
@@ -57,7 +56,7 @@ module Utils where
   ---------------------------------------------------------------------------------
   -- Crea un objeto Solucion a partir de unos datos y unos pesos
   crearSolucion :: Datos -> Pesos -> Estado Solucion
-  crearSolucion !datos !pesos =
+  crearSolucion datos pesos =
     do
       incIter
       return $ Solucion pesos (evaluarF datos pesos) 0
