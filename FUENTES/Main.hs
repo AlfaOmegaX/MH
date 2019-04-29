@@ -32,8 +32,8 @@ module Main where
         gen <- getStdGen
         return (nombreFichero, gen)
       else do
-        putStrLn "Seed aleatoria."
-        gen <- getStdGen
+        putStrLn "Seed 225938972."
+        let gen = mkStdGen 225938971
         return ("", gen))
     if nombreFichero == "" then do
       putStrLn $ "Ejecutando todos los archivos con seed " ++ show gen

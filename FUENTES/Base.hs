@@ -71,7 +71,7 @@ module Base where
   -- Esquema de cruce: toma los padres que van a cruzarse y devuelve la nueva población de hijos usando el op de cruce
   type EsqCruce = OpCruce -> [Cromosoma] -> Estado Poblacion
   -- El operador de mutación toma el hijo y la posición i-ésima donde tiene que mutar y devuelve un nuevo cromosoma
-  type OpMutacion = Cromosoma -> Int -> Estado Cromosoma
+  type OpMutacion = Cromosoma -> [Int] -> Estado Cromosoma
   -- Esquema de mutación: toma la población y devuelve la población mutada con el operador de mutación
   type EsqMutacion = OpMutacion -> Poblacion -> Estado Poblacion
   -- El esquema de reemplazamiento toma la población actual, los hijos y devuelve la nueva población reemplazada
@@ -85,6 +85,15 @@ module Base where
   -- Devuelve el nº de características que tiene un conjunto de datos
   nCaract :: Datos -> Int
   nCaract ((punto, _):_) = U.length punto
+
+  nCaractGeneric :: (Num a) => Datos -> a
+  nCaractGeneric = fromIntegral . nCaract
+
+  getN :: Poblacion -> Int
+  getN = U.length . getPesos . head
+
+  getNGeneric :: (Num a) => Poblacion -> a
+  getNGeneric = fromIntegral . getN
 
   -- Equivalencia de datos con clases
   mismaClase :: Dato -> Dato -> Bool

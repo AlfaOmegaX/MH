@@ -8,40 +8,41 @@ module P2 where
   {-# LANGUAGE StrictData, Strict #-}
   import Base
   import Utils
-  import qualified Data.Vector.Unboxed as U (Vector, imap, fromList, foldl, zipWithM, zipWith, empty, length)
-  import Data.List (genericLength, sort, delete, maximum, minimum)
-  import Control.Monad (zipWithM, replicateM)
+  import qualified Data.Vector.Unboxed as U (Vector, imapM, fromList, foldl, zipWithM, zipWith, empty, length)
+  import Data.List (genericLength, sort, delete, maximum, minimum, group)
+  import Control.Monad (zipWithM, replicateM, foldM)
+  import Control.Monad.Extra (ifM)
   import System.Random (StdGen)
   import Control.Monad.State (evalState)
 
   algoritmosP2 :: StdGen -> [(String, Algoritmo)]
   --algoritmosP2 gen = [("AGG-BLX", aggBlx gen),("AGG-CA", aggCa gen), ("AGE-BLX", ageBlx gen), ("AGE-CA", ageCa gen)]
-  algoritmosP2 gen = [("AGE-BLX", ageBlx gen)]
+  algoritmosP2 gen = [("AGE-BLX", ageBlx gen), ("AGE-CA", ageCa gen)]
   -- Genético generacional con cruce BLX
   aggBlx :: StdGen -> Algoritmo
-  aggBlx = algGenetico 0.001 30 (blxAlpha 0.3) 0.7 15 reempGeneracional
+  aggBlx = algGenetico 30 (blxAlpha 0.3) 0.7 15 (mutGeneracional 0.001) reempGeneracional
 
   -- Genético generacional con cruce aritmético
   aggCa :: StdGen -> Algoritmo
-  aggCa =  algGenetico 0.001 30 (cruceAritmetico 0.5) 0.7 15 reempGeneracional
+  aggCa =  algGenetico 30 (cruceAritmetico 0.5) 0.7 15 (mutGeneracional 0.001) reempGeneracional
 
   -- Genético estacionario con cruce BLX
   ageBlx :: StdGen -> Algoritmo
-  ageBlx = algGenetico 0.001 30 (blxAlpha 0.3) 1.0 1 reempEstacionario
+  ageBlx = algGenetico 30 (blxAlpha 0.3) 1.0 1 (mutEstacionario 0.001) reempEstacionario
 
   -- Genético estacionario con cruce aritmético
   ageCa :: StdGen -> Algoritmo
-  ageCa =  algGenetico 0.001 30 (cruceAritmetico 0.5) 1.0 1 reempEstacionario
+  ageCa =  algGenetico 30 (cruceAritmetico 0.5) 1.0 1 (mutEstacionario 0.001) reempEstacionario
 
   -- Esquema general de un algoritmo genético
-  algGenetico :: Float -> Int -> OpCruce -> Float -> Int -> EsqReemp -> StdGen -> Algoritmo
-  algGenetico pMut nPob opCruce pCruce nParejas esqReemp gen datos = getPesos $ maximum $ evalState (hastaQueM (\_ -> maxIteraciones 15000) generarPob (crearPobIni nPob datos)) (gen, 0)
+  algGenetico :: Int -> OpCruce -> Float -> Int -> EsqMutacion -> EsqReemp -> StdGen -> Algoritmo
+  algGenetico nPob opCruce pCruce nParejas esqMutacion esqReemp gen datos = getPesos $ maximum $ evalState (hastaQueM (\_ -> maxIteraciones 15000) generarPob (crearPobIni nPob datos)) (gen, 0)
     where
       generarPob pob =
         do
           padres <- seleccion nParejas pob
           hijos <- cruce pCruce datos opCruce padres
-          hMut <- mutacion pMut (mutNormal 0.3 datos) hijos
+          hMut <- esqMutacion (mutNormal 0.3 datos) hijos
           esqReemp pob hMut
 
   -- Crea los cromosomas iniciales (aleatorios)
@@ -113,34 +114,62 @@ module P2 where
       listaRands <- randRs (a, b)
       let (g1:g2:_) = take 2 listaRands
       return (g1, g2)
-    
+
   -- Función axuliar: transforma un vector de (Gen, Gen) en (Pesos, Pesos)
   separarGenes :: U.Vector (Gen, Gen) -> (Pesos, Pesos)
   separarGenes genes = (U.fromList h1, U.fromList h2)
     where (h1, h2) = U.foldl (\(acc1, acc2) (g1, g2) -> (acc1 ++ [g1], acc2 ++ [g2])) ([], []) genes
 
-  -- Esquema de mutación: tomamos la población y mutamos aleatoriamente tantas veces como nMut y con el op mutación
-  mutacion :: Float -> EsqMutacion
-  mutacion pMut opMut pob = repiteNM (round (genericLength pob * n * pMut)) (mutarCromosoma opMut) pob
-    where n = fromIntegral $ U.length $ getPesos $ head pob
+  -- Esquema de mutación: versión generacional, fijamos el nº de mutaciones y seleccionamos al azar. Se evita que
+  -- un mismo cromosoma mute repetidamente un mismo gen
+  mutGeneracional :: Float -> EsqMutacion
+  mutGeneracional pMutGen opMut hijos = do
+    let nMuts = round $ pMutGen * genericLength hijos * getNGeneric hijos
+    iRandoms <- randRs (0, length hijos - 1)
+    let croMuts = group $ sort $ take nMuts iRandoms
+    foldM (mutarCromosoma opMut) hijos croMuts
 
-  -- Sacamos un cromosoma aleatorio y un indice aleatorio de su gen a mutar
-  mutarCromosoma :: OpMutacion -> Poblacion -> Estado Poblacion
-  mutarCromosoma opMut pob =
+  -- Se mutan tantos genes distintos de un cromosoma como nº de veces que haya salido al coger aleatoriamente
+  mutarCromosoma :: OpMutacion -> Poblacion -> [Int] -> Estado Poblacion
+  mutarCromosoma opCruce pob indices = do
+    let cro = pob !! (head indices)
+    let nMuts = length indices
+    let n = U.length $ getPesos cro
+    (_, iGenes) <- repiteNM nMuts (indicesSinRepetir) ([0..(n - 1)], [])
+    nuevoCro <- opCruce cro iGenes
+    return $ [nuevoCro] ++ (delete cro pob)
+
+  -- Función auxiliar
+  indicesSinRepetir :: ([Int], [Int]) -> Estado ([Int], [Int])
+  indicesSinRepetir (indices, acc) =
     do
-      iCro <- randR (0, length pob - 1)
-      let cromosoma = pob !! iCro
-      iGen <- randR (0, U.length (getPesos cromosoma) - 1)
-      cNuevo <- opMut cromosoma iGen
-      return $ (delete cromosoma pob) ++ [cNuevo]
+      i <- randR (0, length indices - 1)
+      return (delete (indices !! i) indices, acc ++ [indices !! i])
 
-  -- Operador de mutación: Mutamos el hijo en la posición gen-ésima con desviación estandar sD
+  -- Esquema de mutación: versión estacional, tomamos los dos hijos y vemos la prob de mutación a nivel de cromosoma
+  mutEstacionario :: Float -> EsqMutacion
+  mutEstacionario pMutGen opMut hijos = do
+    let pMutCro = pMutGen * (getNGeneric hijos)
+    pRandoms <- randRs (0.0, 1.0)
+    iRandoms <- randRs (0, getN hijos - 1)
+    let pMut = take 2 pRandoms
+    let iGens = take 2 iRandoms
+    m1 <- ifM (return $ (pMut !! 0) < pMutCro) (opMut (hijos !! 0) [iGens !! 0]) (return $ hijos !! 0)
+    m2 <- ifM (return $ (pMut !! 1) < pMutCro) (opMut (hijos !! 1) [iGens !! 1]) (return $ hijos !! 1)
+    return [m1, m2]
+
+  -- Operador de mutación: Mutamos el hijo en las posiciones iGenes que se pasan con desviación estandar sD
   mutNormal :: Float -> Datos -> OpMutacion
-  mutNormal sD datos hijo gen =
+  mutNormal sD datos hijo iGenes =
     do
-      z <- rNormal sD
-      let pesos = U.imap (\i x -> if i == gen then min 1.0 (max 0.0 (x + z)) else x) (getPesos hijo)
+      pesos <- U.imapM (\i x -> ifM (return $ i `elem` iGenes) (mutGen sD x) (return x)) (getPesos hijo)
       crearCromosoma datos pesos
+
+  -- Pasa un gen y lo modifica segun el op de mutación
+  mutGen :: Float -> Gen -> Estado Gen
+  mutGen sD x = do
+    z <- rNormal sD
+    return $ min 1.0 $ max 0.0 $ x + z
 
   -- Esquema de reemplazamiento: los hijos reemplazan la población y si el mejor
   -- de la población anterior no está, se reemplaza por el peor hijo

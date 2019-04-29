@@ -17,13 +17,19 @@ module KNN where
   -- Clasificador 1-nn con pesos, devuelve el porcentaje de acierto
   clas1nn :: Datos -> Datos -> Pesos -> Float
   clas1nn lTrain lTest pesos =
-    let maxDist p = foldl1 (\acc x -> if dist2P x p pesos < dist2P acc p pesos then x else acc) (delete p lTrain)
-        aciertos  = fmap (\p -> mismaClase p (maxDist p)) lTest
+    let minDist p = foldl (min2P p pesos) (fromIntegral $ length p + 1, "") (delete p lTrain)
+        aciertos  = fmap (\p -> snd p == (snd $ minDist p)) lTest
     in (genericLength $ filter (== True) aciertos) / genericLength aciertos
+
+  -- Distancia mínima de las dos
+  min2P :: Dato -> Pesos -> (Float, Clase) -> Dato -> (Float, Clase)
+  min2P p pesos acc x = if distP < fst acc then (distP, snd x) else acc
+    where distP = dist2P x p pesos
 
   -- Distancia euclidea considerando pesos
   dist2P :: Dato -> Dato -> Pesos -> Float
-  dist2P (p1,_) (p2,_) pesos = U.sum $ U.zipWith3 (\x y z -> z * (y - x) * (y - x)) p1 p2 pesos
+  dist2P (p1,_) (p2,_) pesos = U.sum $ U.zipWith3 (\x y z -> z * rest y x * rest y x) p1 p2 pesos
+    where rest y x = (y - x)
 
   -- Reduce los pesos (pone a 0 los pesos que valgan menos de 0.2)
   reducePesos :: Pesos -> Pesos
