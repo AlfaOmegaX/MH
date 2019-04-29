@@ -10,7 +10,6 @@ module Base where
   import Control.Monad.State (State)
   import System.Random (StdGen)
 
-
   -- Una clase se puede representar como texto
   type Clase = String
   -- Un punto es un vector real

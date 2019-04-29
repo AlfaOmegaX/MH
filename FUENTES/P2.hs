@@ -124,7 +124,7 @@ module P2 where
   -- un mismo cromosoma mute repetidamente un mismo gen
   mutGeneracional :: Float -> EsqMutacion
   mutGeneracional pMutGen opMut hijos = do
-    let nMuts = round $ pMutGen * genericLength hijos * getNGeneric hijos
+    let nMuts = max 1 $ round $ pMutGen * genericLength hijos * getNGeneric hijos
     iRandoms <- randRs (0, length hijos - 1)
     let croMuts = group $ sort $ take nMuts iRandoms
     foldM (mutarCromosoma opMut) hijos croMuts
