@@ -22,11 +22,11 @@ module Main where
   main :: IO ()
   main = do
     args <- getArgs
-    (nombreFichero, gen) <- (if (length args == 2) then do
+    (nombreFichero, gen) <- if length args == 2 then do
       putStrLn "Seed fijada."
       let (nombreFichero:seed:_) = args
       return (nombreFichero, mkStdGen (read seed :: Int))
-    else if (length args == 1) then do
+    else if length args == 1 then do
         putStrLn "Seed aleatoria."
         let (nombreFichero:_) = args
         gen <- getStdGen
@@ -34,7 +34,7 @@ module Main where
       else do
         putStrLn "Seed 225938972."
         let gen = mkStdGen 225938971
-        return ("", gen))
+        return ("", gen)
     if nombreFichero == "" then do
       putStrLn $ "Ejecutando todos los archivos con seed " ++ show gen
       ejecutarTodos gen
@@ -46,9 +46,8 @@ module Main where
   -- Ejecuta todos los dataset
   ejecutarTodos :: StdGen -> IO ()
   ejecutarTodos gen = do
-    let nombresFicheros = ["ionosphere.arff", "colposcopy.arff", "texture.arff"]
-    _ <- mapM (ejecutarPrograma gen) nombresFicheros
-    return ()
+    let nombresFicheros = ["ionosphere.arff"]--, "colposcopy.arff", "texture.arff"]
+    mapM_ (ejecutarPrograma gen) nombresFicheros
 
   -- Ejecuta un dataset
   ejecutarPrograma :: StdGen -> String -> IO ()

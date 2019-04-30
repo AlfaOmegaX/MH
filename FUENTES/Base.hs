@@ -13,7 +13,7 @@ module Base where
   -- Una clase se puede representar como texto
   type Clase = String
   -- Un punto es un vector real
-  type Punto = U.Vector Float
+  type Punto = U.Vector Double
   -- Un dato es un vector de n caracteristicas reales (el punto) junto a su clase
   type Dato = (Punto, Clase)
   -- Una conjunto de datos
@@ -23,7 +23,7 @@ module Base where
   -- Un conjunto de particiones
   type Particiones = [Particion]
   -- Unos pesos son un vector de n valores reales entre [0,1]
-  type Pesos = U.Vector Float
+  type Pesos = U.Vector Double
   -- Un algoritmo es una función que lee unos datos (conjunto entrenamiento) y da una solución (pesos)
   type Algoritmo = Datos -> Pesos
   -- Definición de un evaulador de estados, con estado un generador y el nº de iteraciones realizadas
@@ -36,7 +36,7 @@ module Base where
   -- Una solución con el valor fit guardado (y nº de vecinos creados para BL)
   data Solucion = Solucion {
     getPesos :: Pesos, -- La solución propiamente dicha (los pesos)
-    getFit :: Float, -- El resultado de evaluar con la función objetivo los pesos de la solución
+    getFit :: Double, -- El resultado de evaluar con la función objetivo los pesos de la solución
     getNVecinos :: Int -- Nº de vecinos en BL
   }
 
@@ -56,7 +56,7 @@ module Base where
   -- P2
   -----------------------------------------------------------------------------
   -- Un gen es un valor real
-  type Gen = Float
+  type Gen = Double
   -- Un cromosoma será una solución (pesos) con el valor de la función objetivo (de menor a mayor)
   type Cromosoma = Solucion
   -- Una población es una lista de cromosomas
@@ -75,6 +75,8 @@ module Base where
   type EsqMutacion = OpMutacion -> Poblacion -> Estado Poblacion
   -- El esquema de reemplazamiento toma la población actual, los hijos y devuelve la nueva población reemplazada
   type EsqReemp = Poblacion -> Poblacion -> Estado Poblacion
+  -- El esquema de búsqueda local toma la población y la devuelve aplicando BL segun un criterio
+  type EsqBL = Poblacion -> Estado Poblacion
   -----------------------------------------------------------------------------
 
   -----------------------------------------------------------------------------

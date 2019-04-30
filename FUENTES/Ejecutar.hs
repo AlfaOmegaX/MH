@@ -28,7 +28,7 @@ module Ejecutar where
   ejecuta :: Particiones -> (String, Algoritmo) -> IO String
   ejecuta particiones (nomAlg, alg) =
     do
-      resultados <- mapM (obtenerResultados alg) particiones
+      resultados <- mapM (obtenerResultados alg) [head particiones]
       let nombreAlgoritmo             = "Algoritmo " ++ nomAlg ++ ":\n"
       let (tAci, tRed, t, n, mensaje) = foldl crearInfo (0.0, 0.0, 0.0, 0, nombreAlgoritmo) resultados
       let aciMedio                    = tAci / fromIntegral n
@@ -37,25 +37,25 @@ module Ejecutar where
       return $ mensaje ++ "Acierto medio: " ++ show aciMedio ++ " %, reduccion media: " ++ show redMedio ++ " %, evaluacion media: " ++ show (fEvaluacion 0.5 aciMedio redMedio) ++ ", tiempo medio: " ++ show tMedio ++ "s\n"
 
   -- Formateo de mensaje de salida
-  crearInfo :: (Float, Float, Float, Int, String) -> (Float, Float, Float) -> (Float, Float, Float, Int, String)
+  crearInfo :: (Double, Double, Double, Int, String) -> (Double, Double, Double) -> (Double, Double, Double, Int, String)
   crearInfo (a, r, t, i, c)  (x, y, z) =
       let mensaje = "Particion " ++ show (i + 1) ++ ": Acierto " ++ show x ++ " %, reduccion: " ++ show y ++ "%, evaluacion: " ++ show (fEvaluacion 0.5 x y) ++  ", tiempo: " ++ show z ++ "s\n"
       in (a + x, r + y, t + z, i + 1, c ++ mensaje)
 
   -- Aplica un algoritmo para obtener pesos y devuelve los resultados junto con el tiempo tardado
-  obtenerResultados :: Algoritmo -> Particion -> IO (Float, Float, Float)
+  obtenerResultados :: Algoritmo -> Particion -> IO (Double, Double, Double)
   obtenerResultados alg (train, test) =
     do
       (pesos, tiempo) <- pesosTiempo alg train
-      let pReduccion =  (fromIntegral $ U.length $ U.filter (< 0.2) pesos) / (fromIntegral $ U.length pesos)
+      let pReduccion = fromIntegral (U.length (U.filter (< 0.2) pesos)) / fromIntegral (U.length pesos)
       let pAcierto = clas1nn train test $ reducePesos pesos
       return (100.0 * pAcierto, 100.0 * pReduccion, tiempo)
 
   -- Aplica el algoritmo para obtener pesos y devuelve los pesos y el tiempo tardado
-  pesosTiempo :: Algoritmo -> Datos -> IO (Pesos, Float)
+  pesosTiempo :: Algoritmo -> Datos -> IO (Pesos, Double)
   pesosTiempo alg train =
     do
       t1 <- getTime Realtime
       let pesos = alg train
-      t2 <- pesos `deepseq` (getTime Realtime)
+      t2 <- pesos `deepseq` getTime Realtime
       return (pesos, fromIntegral(toNanoSecs(t2 - t1)) / 1000000000)

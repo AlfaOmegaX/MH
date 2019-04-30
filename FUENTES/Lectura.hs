@@ -16,7 +16,7 @@ module Lectura where
   ---------------------------------------------------------------------------------
   -- Crea un dato a partir de una linea del fichero
   creaDato :: String -> Dato
-  creaDato linea = (U.fromList $ fmap read $ init vector, filter (/=' ') $ last vector)
+  creaDato linea = (U.fromList $ read <$> init vector, filter (/=' ') $ last vector)
     where vector = splitOn "," linea
 
   -- Lee el archivo y crea una lista con los datos normalizados

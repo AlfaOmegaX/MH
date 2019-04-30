@@ -30,10 +30,25 @@ En nuestro caso usaremos $\alpha = 0,5$ queriendo así obtener soluciones que se
 
 Antes de explicar los algoritmos realizados, describiré los tipos, métodos comunes... de todos los algoritmos. Como anotación, en algunas funciones no se especificarán algunas cosas completamente para evitar obscurecer el pseudocódigo; y en cosas menos importantes como la lectura de datos o creación de particiones no se incluye pseudocódigo al no ser el objetivo de la práctica.
 
+## Distribución del codigo
+El código se encuentra distribuido en diferentes módulos:
+
+- `Base`: los tipos de estructura para todos los módulos y unas pocas funciones básicas
+- `Main`: código principal, manejo general
+- `Lectura`: para leer los datos del fichero y crear la estructura de datos
+- `CrossV`: forma las particiones de CrossValidation
+- `KNN`: implementa clasificador 1nn
+- `Ejecutar`: ejecuta los algoritmos y formatea los resultados
+- `Utils`: funciones auxiliares comunes
+- `P1`: algoritmos de la P1
+- `P2`: algoritmos de la P2
+
 ## Notación de pseudocódigo
 He usado la explicación de Pablo Baeyens Fernández (disponible en [GitHub](https://github.com/mx-psi/metaheuristicas)) que también hizo las prácticas en Haskell y se entiende bastante bien para gente nueva a este tipo de notación:
 
 Usaré notación parecida a la usada en Haskell para que se entiendan mejor las cosas aunque será una versión muy simplificada ya que hay cosas como para generar números aleatorios que se complican en Haskell que omitiré. Los argumentos se pasan a las funciones separados por espacios y el tipo de la función se indica después de su nombre seguido de dos dobles puntos `::`. Además para evitar poner paréntesis se puede cambiar por `$`, es decir `f(g(z * y))` equivale a `f $ g $ z * y`.
+
+Aclaro que todo se "pasa" por valor, no por referencia ni por punteros, luego se asume como en C++ como si fuera todo paso por valor, por tanto el resultado de una operacion no se puede alterar.
 
 Para mostrar el estilo del pseudocódigo incluyo un ejemplo de pseudocódigo para una función en C:
 
@@ -69,16 +84,14 @@ También explico algunas funciones que se usan bastante:
 
 ## Representación de datos
 
-- Un **atributo** se representa con `Float`.
-- Un **vector de atributos** (`Punto`) se representa con `Vector Float`.
+- Un **atributo** se representa con `Double`.
+- Un **vector de atributos** (`Punto`) se representa con `Vector Double`.
 - Una **clase** (`Clase`) se representa con `String`.
 - Un **dato** (`Dato`) se representa como una tupla `(Punto, Clase)`.
 - Un **conjunto de datos** ( `Datos`) se representa como `[Dato]` (lista de `Dato`), pudiera ser un conjunto de entrenamiento, prueba, o cualquier agrupación de datos.
 - Una **partición** (`Particion`) se representa como una tupla con el conjunto de entrenamiento y el de prueba `(Datos, Datos)`, se refiere a una de las agrupaciones obtenidas de aplicar el k-fold cross validation, no solo a una de las particiones en las que se dividen el conjunto total de datos.
 - Un **conjunto de particiones** (`Particiones`) se representa como una `[Particion]`.
 - Un **algoritmo** (`Algoritmo`) se representa como una función `Datos -> Pesos` que toma el conjunto de entrenamiento y devuelve la solución (los pesos).
-
-Además, para la búsqueda local se añaden dos tipos llamados `Solucion` y `Rand a` que ya explicaré en su sección correspondiente.
 
 ## Lectura del archivo .arff y normalización
 
@@ -135,7 +148,7 @@ Existe una variante para cuando se quiere evaluar f sobre el conjunto de entrena
 evaluarF :: Datos -> Pesos -> Float
 evaluarF datos pesos =
   let pReduccion = selecciona (< 0.2) pesos / sizeOf pesos
-      pAcierto   = clas1nn datos datos pesos
+      pAcierto   = clas1nn datos datos (reducePesoss pesos)
   in fEvaluacion 0.5 pAcierto pReduccion
 ```
 

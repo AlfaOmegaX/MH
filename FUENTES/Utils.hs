@@ -67,7 +67,7 @@ module Utils where
 
   -- Crear cromosoma
   crearCromosoma :: Datos -> Pesos -> Estado Cromosoma
-  crearCromosoma datos pesos = crearSolucion datos pesos
+  crearCromosoma = crearSolucion
   ---------------------------------------------------------------------------------
   -- Funciones para Estado
   ---------------------------------------------------------------------------------
@@ -81,7 +81,7 @@ module Utils where
     return res
 
   -- Valor de distribución normal con media 0.0 y desviación estandar sD
-  rNormal :: Float -> Estado Float
+  rNormal :: Double -> Estado Double
   rNormal sD = do
     g <- getGen
     let (res, g') = normal' (0.0, sD) g
@@ -124,3 +124,6 @@ module Utils where
   putGen gen = do
     (_, nIter) <- get
     put (gen, nIter)
+
+  restringe :: Double -> Double
+  restringe = min 1.0 . max 0.0

@@ -25,13 +25,13 @@ module CrossV where
   crearParticiones :: StdGen -> Int -> [Datos] -> [Datos]
   crearParticiones gen k datos =
     let (particiones, resto) = foldl (uneParticiones k) (replicate k [], []) datos
-        restoMezclado = if resto == [] then [] else shuffle' resto (length resto) gen
+        restoMezclado = if null resto then [] else shuffle' resto (length resto) gen
         (particiones', resto') = if length restoMezclado < k then (particiones, restoMezclado) else uneParticiones k (particiones, []) restoMezclado
     in mergeResto resto' particiones'
 
   -- Junta todas las k particiones de cada clase y una lista de todos los restos
   uneParticiones :: Int -> ([Datos], Datos) -> Datos -> ([Datos], Datos)
-  uneParticiones k (acc1, acc2) listaClase = (zipWith union acc1 particiones, union acc2 resto)
+  uneParticiones k (acc1, acc2) listaClase = (zipWith union acc1 particiones, acc2 `union` resto)
     where (particiones, resto) = divideClases k listaClase
 
   -- Divide la lista de una clase en k particiones y el resto

@@ -56,11 +56,11 @@ actualizaPesos p datos =
   in U.zipWith4 (\p' e a w -> p' `dist1c` e - p' `dist1c` a + w) (fst p) (fst $ trainData !! iEnemigo) (fst $ trainData !! iAmigo)
 
 -- Distancia 1 entre dos puntos
-dist1 :: Dato -> Dato -> Float
+dist1 :: Dato -> Dato -> Double
 dist1 (p1,_) (p2,_) = U.sum $ U.zipWith dist1c p1 p2
 
 -- Distancia 1 en una coordenada
-dist1c :: Float -> Float -> Float
+dist1c :: Double -> Double -> Double
 dist1c x y = abs (y - x)
 ---------------------------------------------------------------------------------
 
@@ -71,6 +71,10 @@ dist1c x y = abs (y - x)
 busLoc :: StdGen -> Algoritmo
 busLoc gen datos = getPesos $ fst $ evalState
   (hastaQueM (condParada 15000 (20 * nCaract datos) . fst) (crearVecino datos) (pesosIniRand datos)) (gen, 0)
+
+-- Aplica busqueda local para algoritmos meméticos
+busLocMem :: Datos -> Cromosoma -> Estado Cromosoma
+busLocMem datos cro = fst <$> hastaQueM (condParada 15000 (2 * nCaract datos) . fst) (crearVecino datos) (return (cro, [0..(nCaract datos -1)]))
 
 -- Crea una solución inicial con pesos aleatorios
 pesosIniRand :: Datos -> Estado (Solucion, [Int])
@@ -84,16 +88,16 @@ pesosIniRand datos = do
 crearVecino :: Datos -> (Solucion, [Int]) -> Estado (Solucion, [Int])
 crearVecino datos (sol, indices) = do
   (solNueva, solAct, indNuev) <- obtenerVecino 0.3 datos indices sol
-  let indNuev' = if solNueva > solAct || indNuev == [] then [0..(nCaract datos - 1)] else indNuev
+  let indNuev' = if solNueva > solAct || null indNuev then [0..(nCaract datos - 1)] else indNuev
   return (max solNueva solAct, indNuev')
 
 -- Obtengo una nueva solución del vecindario de la solución actual
-obtenerVecino :: Float -> Datos -> [Int] -> Solucion -> Estado (Solucion, Solucion, [Int])
+obtenerVecino :: Double -> Datos -> [Int] -> Solucion -> Estado (Solucion, Solucion, [Int])
 obtenerVecino sD datos indices sol = do
   inds <- randR (0, length indices - 1)
   let ind = indices !! inds
   z <- rNormal sD
-  let pesosN = U.imap (\i x -> if i == ind then min 1.0 (max 0.0 (x + z)) else x) $ getPesos sol
+  let pesosN = U.imap (\i x -> if i == ind then restringe $ x + z else x) $ getPesos sol
   nuevaSol <- crearSolucion datos pesosN
   return (nuevaSol, aumentaVecino sol, delete ind indices)
 ---------------------------------------------------------------------------------
