@@ -25,36 +25,40 @@ module P2 where
   ---------------------------------------------------------------------------------
   -- Genético generacional con cruce BLX
   aggBlx :: StdGen -> Algoritmo
-  aggBlx = esqGenetico noAplica 30 (blxAlpha 0.3) 0.7 15 (mutGeneracional 0.001) reempGeneracional
+  aggBlx = esqGenetico noAplica 30 (blxAlpha 0.3) 0.7 15 mutGeneracional 0.001 reempGeneracional
 
   -- Genético generacional con cruce aritmético
   aggCa :: StdGen -> Algoritmo
-  aggCa =  esqGenetico noAplica 30 (cruceAritmetico 0.5) 0.7 15 (mutGeneracional 0.001) reempGeneracional
+  aggCa =  esqGenetico noAplica 30 (cruceAritmetico 0.5) 0.7 15 mutGeneracional 0.001 reempGeneracional
 
   -- Genético estacionario con cruce BLX
   ageBlx :: StdGen -> Algoritmo
-  ageBlx = esqGenetico noAplica 30 (blxAlpha 0.3) 1.0 1 (mutEstacionario 0.001) reempEstacionario
+  ageBlx = esqGenetico noAplica 30 (blxAlpha 0.3) 1.0 1 mutEstacionario 0.001 reempEstacionario
 
   -- Genético estacionario con cruce aritmético
   ageCa :: StdGen -> Algoritmo
-  ageCa = esqGenetico noAplica 30 (cruceAritmetico 0.5) 1.0 1 (mutEstacionario 0.001) reempEstacionario
+  ageCa = esqGenetico noAplica 30 (cruceAritmetico 0.5) 1.0 1 mutEstacionario 0.001 reempEstacionario
 
-  esqGenetico :: EsqBL -> Int -> OpCruce -> Double -> Int -> EsqMutacion -> EsqReemp -> StdGen -> Algoritmo
-  esqGenetico esqBL nPob opCruce pCruce nParejas esqMutacion esqReemp gen datos = getPesos $ maximum $ fst $ evalState (hastaQueM (\_ -> maxIteraciones 15000) generarPob ((\x -> (x, 0 :: Int)) <$> crearPobIni nPob datos)) (gen, 0)
+  esqGenetico :: EsqBL -> Int -> OpCruce -> Double -> Int -> EsqMutacion -> Double -> EsqReemp -> StdGen -> Algoritmo
+  esqGenetico esqBL nPob opCruce pCruce nParejas esqMutacion pMut esqReemp gen datos = getPesos $ maximum $ fst $ evalState (hastaQueM (\_ -> maxIteraciones 15000) generarPob ((\x -> (x, 0 :: Int)) <$> crearPobIni nPob datos)) (gen, 0)
     where
       generarPob (pob, i) =
         do
           padres <- seleccion nParejas pob
           hijos <- cruce pCruce datos opCruce padres
-          hMut <- esqMutacion (mutNormal 0.3 datos) hijos
+          hMut <- esqMutacion pMut (mutNormal 0.3 datos) hijos
           nuevaPob <- esqReemp pob hMut
           let iNuevo = i + 1
-          pobFinal <- ifM (return $ (iNuevo `mod` 10) == 0) (esqBL nuevaPob) (return nuevaPob)
+          pobFinal <- ifM (return $ (iNuevo `mod` 10) == 0) (esqBL datos nuevaPob) (return nuevaPob)
           return (pobFinal, iNuevo)
 
   -- Esquema BL: No aplica BL (genético normal)
   noAplica :: EsqBL
-  noAplica = return
+  noAplica _ pob = return pob
+
+  -- Esquema de creación población iniciaL: crea nPob cromosomas
+  crearPobIni :: Int -> EsqInicial
+  crearPobIni nPob datos = replicateM nPob (crearCromIni datos)
 
   -- Crea los cromosomas iniciales (aleatorios)
   crearCromIni :: Datos -> Estado Cromosoma
@@ -63,10 +67,6 @@ module P2 where
       nRandoms <- randRs (0.0, 1.0)
       let pesos = U.fromList $ take (nCaract datos) nRandoms
       crearCromosoma datos pesos
-
-  -- Esquema de creación población iniciaL: crea nPob cromosomas
-  crearPobIni :: EsqInicial
-  crearPobIni nPob datos = replicateM nPob (crearCromIni datos)
 
   -- Esquema de selección: Tomamos la población y seleccionamos el nº de padres (se toman tantas parejas como nParejas)
   seleccion :: Int -> EsqSeleccion
@@ -81,39 +81,25 @@ module P2 where
       return $ foldl (\acc i -> max acc (pob !! i)) (Solucion U.empty 0.0 0) inds
 
   -- Esquema de cruce: tomamos la población y juntamos las nCruces parejas, uniendo el primero con el N / 2 y así
-  cruce :: Double -> Datos -> EsqCruce
+  cruce :: EsqCruce
   cruce pCruce datos opCruce padres =
     do
       let nCruces = round $ pCruce * genericLength padres / (2 :: Double)
       let (cruces, noCruce) = splitAt (nCruces * 2) padres
       let (padres1, padres2) = splitAt nCruces cruces
-      hijosP <- zipWithM opCruce padres1 padres2
-      hijos <- mapM (convertirHijos datos) hijosP
+      hijos <- zipWithM (opCruce datos) padres1 padres2
       let nPob = foldl (\acc (h1, h2) -> h1:h2:acc) [] hijos
       return $ nPob ++ noCruce
 
--- Transforma el par de pesos en par de cromosomas
-  convertirHijos :: Datos -> (Pesos, Pesos) -> Estado (Cromosoma, Cromosoma)
-  convertirHijos datos (w1, w2) =
-    do
-      h1 <- crearCromosoma datos w1
-      h2 <- crearCromosoma datos w2
-      return (h1, h2)
-
-  -- Operador de cruce: cruce aritmético (combinación lineal)
-  cruceAritmetico :: Double -> OpCruce
-  cruceAritmetico alpha p1 p2 = do
-    let cLineal i1 i2 = (alpha * i1 + (1 - alpha) * i2, (1 - alpha) * i1 + alpha * i2)
-    let (w1, w2) = separarGenes $ U.zipWith cLineal (getPesos p1) (getPesos p2)
-    return (w1, w2)
-
   -- Operador de cruce: blx-alpha
   blxAlpha :: Double -> OpCruce
-  blxAlpha alpha p1 p2 =
+  blxAlpha alpha datos p1 p2 =
     do
       res <- U.zipWithM (cruzarGenes alpha) (getPesos p1) (getPesos p2)
       let (w1, w2) = separarGenes res
-      return (w1, w2)
+      h1 <- crearCromosoma datos w1
+      h2 <- crearCromosoma datos w2
+      return (h1, h2)
 
   -- Creamos los dos i-esimo gen para blx
   cruzarGenes :: Double -> Gen -> Gen -> Estado (Gen, Gen)
@@ -126,6 +112,15 @@ module P2 where
       let (g1:g2:_) = take 2 listaRands
       return (restringe g1, restringe g2)
 
+  -- Operador de cruce: cruce aritmético (combinación lineal)
+  cruceAritmetico :: Double -> OpCruce
+  cruceAritmetico alpha datos p1 p2 = do
+    let cLineal i1 i2 = (alpha * i1 + (1 - alpha) * i2, (1 - alpha) * i1 + alpha * i2)
+    let (w1, w2) = separarGenes $ U.zipWith cLineal (getPesos p1) (getPesos p2)
+    h1 <- crearCromosoma datos w1
+    h2 <- crearCromosoma datos w2
+    return (h1, h2)
+
   -- Función axuliar: transforma un vector de (Gen, Gen) en (Pesos, Pesos)
   separarGenes :: U.Vector (Gen, Gen) -> (Pesos, Pesos)
   separarGenes genes = (U.fromList h1, U.fromList h2)
@@ -133,7 +128,7 @@ module P2 where
 
   -- Esquema de mutación: versión generacional, fijamos el nº de mutaciones y seleccionamos al azar. Se evita que
   -- un mismo cromosoma mute repetidamente un mismo gen
-  mutGeneracional :: Double -> EsqMutacion
+  mutGeneracional :: EsqMutacion
   mutGeneracional pMutGen opMut hijos = do
     let nMuts = max 1 $ round $ pMutGen * genericLength hijos * getNGeneric hijos
     iRandoms <- randRs (0, length hijos - 1)
@@ -150,7 +145,7 @@ module P2 where
     nuevoCro <- opCruce cro iGenes
     return $ nuevoCro:delete cro pob
 
-  -- Función auxiliar
+  -- Función auxiliar: para tomar índices únicos
   indicesSinRepetir :: ([Int], [Int]) -> Estado ([Int], [Int])
   indicesSinRepetir (indices, acc) =
     do
@@ -158,16 +153,17 @@ module P2 where
       return (delete (indices !! i) indices, acc ++ [indices !! i])
 
   -- Esquema de mutación: versión estacional, tomamos los dos hijos y vemos la prob de mutación a nivel de cromosoma
-  mutEstacionario :: Double -> EsqMutacion
-  mutEstacionario pMutGen opMut hijos = do
-    let pMutCro = pMutGen * getNGeneric hijos
-    pRandoms <- randRs (0.0, 1.0)
-    iRandoms <- randRs (0, getN hijos - 1)
-    let pMut = take 2 pRandoms
-    let iGens = take 2 iRandoms
-    m1 <- ifM (return $ head pMut < pMutCro) (opMut (head hijos) [head iGens]) (return $ head hijos)
-    m2 <- ifM (return $ (pMut !! 1) < pMutCro) (opMut (hijos !! 1) [iGens !! 1]) (return $ hijos !! 1)
-    return [m1, m2]
+  mutEstacionario :: EsqMutacion
+  mutEstacionario pMutGen opMut hijos =
+    do
+      let pMutCro = pMutGen * getNGeneric hijos
+      pRandoms <- randRs (0.0, 1.0)
+      iRandoms <- randRs (0, getN hijos - 1)
+      let pMut = take 2 pRandoms
+      let iGens = take 2 iRandoms
+      m1 <- ifM (return $ head pMut < pMutCro) (opMut (head hijos) [head iGens]) (return $ head hijos)
+      m2 <- ifM (return $ (pMut !! 1) < pMutCro) (opMut (hijos !! 1) [iGens !! 1]) (return $ hijos !! 1)
+      return [m1, m2]
 
   -- Operador de mutación: Mutamos el hijo en las posiciones iGenes que se pasan con desviación estandar sD
   mutNormal :: Double -> Datos -> OpMutacion
@@ -200,20 +196,20 @@ module P2 where
   ---------------------------------------------------------------------------------
 
   amTodos :: StdGen -> Algoritmo
-  amTodos gen datos = esqGenetico (aplicaTodos datos) 10 (blxAlpha 0.3) 0.7 5 (mutGeneracional 0.001) reempGeneracional gen datos
+  amTodos = esqGenetico aplicaTodos 10 (blxAlpha 0.3) 0.7 5 mutGeneracional 0.001 reempGeneracional
 
   amProb :: StdGen -> Algoritmo
-  amProb gen datos = esqGenetico (aplicaProb 0.1 datos) 10 (blxAlpha 0.3) 0.7 5 (mutGeneracional 0.001) reempGeneracional gen datos
+  amProb = esqGenetico (aplicaProb 0.1) 10 (blxAlpha 0.3) 0.7 5 mutGeneracional 0.001 reempGeneracional
 
   amMejor :: StdGen -> Algoritmo
-  amMejor gen datos = esqGenetico (aplicaMejor 0.1 datos) 10 (blxAlpha 0.3) 0.7 5 (mutGeneracional 0.001) reempGeneracional gen datos
+  amMejor = esqGenetico (aplicaMejor 0.1) 10 (blxAlpha 0.3) 0.7 5 mutGeneracional 0.001 reempGeneracional
 
   -- Esquema BL: Aplica BL a toda la poblacion
-  aplicaTodos :: Datos -> EsqBL
+  aplicaTodos :: EsqBL
   aplicaTodos = aplicaBL
 
   -- Esquema BL: Aplica BL al conjunto de cromosomas elegidos por prob
-  aplicaProb :: Double -> Datos -> EsqBL
+  aplicaProb :: Double -> EsqBL
   aplicaProb pLS datos pob =
     do
       pRands <- randRs (0.0, 1.0)
@@ -223,7 +219,7 @@ module P2 where
       aplicados <- aplicaBL datos escogidos
       return $ aplicados ++ rechazados
 
-  aplicaMejor :: Double -> Datos -> EsqBL
+  aplicaMejor :: Double -> EsqBL
   aplicaMejor rMejor datos pob =
     do
       let nMejores = max 1 $ round $ rMejor * genericLength pob
@@ -232,5 +228,5 @@ module P2 where
       return $ aplicados ++ rechazados
 
   -- Aplica BL a un conjunto de cromosomas
-  aplicaBL :: Datos -> EsqBL
+  aplicaBL :: EsqBL
   aplicaBL datos = mapM (busLocMem datos)

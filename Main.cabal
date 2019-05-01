@@ -29,5 +29,5 @@ executable P1bin
                        deepseq >= 1.4,
                        mtl >= 2.2.1,
                        monad-loops >= 0.4.2,
-                       unordered-containers >= 0.2.10.0,
+                       unordered-containers >= 0.2.8.0,
                        extra >= 1.5.3

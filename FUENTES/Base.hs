@@ -62,21 +62,21 @@ module Base where
   -- Una población es una lista de cromosomas
   type Poblacion = [Cromosoma]
   -- Esquema creación población inicial: nº de poblacion y los datos para crearla
-  type EsqInicial = Int -> Datos -> Estado Poblacion
+  type EsqInicial = Datos -> Estado Poblacion
   -- Esquema de seleccion: toma la población y devuelve los padres que van a cruzarse (sin ordenar)
-  type EsqSeleccion = Poblacion -> Estado [Cromosoma]
-  -- El operador de cruce toma los 2 padres y devuelve 2 pesos para convertir en hijos
-  type OpCruce = Cromosoma -> Cromosoma -> Estado (Pesos, Pesos)
-  -- Esquema de cruce: toma los padres que van a cruzarse y devuelve la nueva población de hijos usando el op de cruce
-  type EsqCruce = OpCruce -> [Cromosoma] -> Estado Poblacion
+  type EsqSeleccion = Poblacion -> Estado Poblacion
+  -- El operador de cruce toma los 2 padres y devuelve los dos nuevos hijos creandolos con los datos
+  type OpCruce = Datos -> Cromosoma -> Cromosoma -> Estado (Cromosoma, Cromosoma)
+  -- Esquema de cruce: toma los padres que van a cruzarse, prob de cruce, los datos y devuelve la nueva población de hijos usando el op de cruce
+  type EsqCruce = Double -> Datos -> OpCruce -> Poblacion -> Estado Poblacion
   -- El operador de mutación toma el hijo y la posición i-ésima donde tiene que mutar y devuelve un nuevo cromosoma
   type OpMutacion = Cromosoma -> [Int] -> Estado Cromosoma
-  -- Esquema de mutación: toma la población y devuelve la población mutada con el operador de mutación
-  type EsqMutacion = OpMutacion -> Poblacion -> Estado Poblacion
+  -- Esquema de mutación: toma la población y la prob de mutación y devuelve la población mutada con el operador de mutación
+  type EsqMutacion = Double -> OpMutacion -> Poblacion -> Estado Poblacion
   -- El esquema de reemplazamiento toma la población actual, los hijos y devuelve la nueva población reemplazada
   type EsqReemp = Poblacion -> Poblacion -> Estado Poblacion
-  -- El esquema de búsqueda local toma la población y la devuelve aplicando BL segun un criterio
-  type EsqBL = Poblacion -> Estado Poblacion
+  -- El esquema de búsqueda local toma la población y la devuelve aplicando BL con los datos, segun un criterio
+  type EsqBL = Datos -> Poblacion -> Estado Poblacion
   -----------------------------------------------------------------------------
 
   -----------------------------------------------------------------------------
