@@ -7,4 +7,4 @@ build:
 	stack install
 
 run:
-	./P1bin.exe
+	./P2bin

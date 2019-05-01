@@ -32,8 +32,8 @@ module Main where
         gen <- getStdGen
         return (nombreFichero, gen)
       else do
-        putStrLn "Seed 225938972."
-        let gen = mkStdGen 225938971
+        putStrLn "Seed aleatoria."
+        gen <- getStdGen
         return ("", gen)
     if nombreFichero == "" then do
       putStrLn $ "Ejecutando todos los archivos con seed " ++ show gen
@@ -46,7 +46,7 @@ module Main where
   -- Ejecuta todos los dataset
   ejecutarTodos :: StdGen -> IO ()
   ejecutarTodos gen = do
-    let nombresFicheros = ["ionosphere.arff", "colposcopy.arff", "texture.arff"]
+    let nombresFicheros = ["colposcopy.arff", "ionosphere.arff", "texture.arff"]
     mapM_ (ejecutarPrograma gen) nombresFicheros
 
   -- Ejecuta un dataset

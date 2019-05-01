@@ -1,5 +1,5 @@
 name:                Main
-version:             1.0
+version:             2.0
 homepage:            https://github.com/AlfaOmegaX/MH
 license:             GPL-3
 license-file:        LICENSE
@@ -8,10 +8,10 @@ maintainer:          Miguel Lentisco
 category:            Personal
 build-type:          Simple
 cabal-version:       >=1.10
-description:         P1 Metaheurísticas algoritmos RELIEF/BL
-synopsis:            P1 Metaheurísticas
+description:         P2 Metaheurísticas algoritmos genéticos/meméticos
+synopsis:            P2 Metaheurísticas
 
-executable P1bin
+executable P2bin
   hs-source-dirs:      FUENTES
   main-is:             Main.hs
   other-modules:       Base, Lectura, CrossV, KNN, Utils, Ejecutar, P1, P2
