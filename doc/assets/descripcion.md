@@ -88,7 +88,7 @@ También explico algunas funciones que se usan bastante:
 - Un **vector de atributos** (`Punto`) se representa con `Vector Double`.
 - Una **clase** (`Clase`) se representa con `String`.
 - Un **dato** (`Dato`) se representa como una tupla `(Punto, Clase)`.
-- Un **conjunto de datos** ( `Datos`) se representa como `[Dato]` (lista de `Dato`), pudiera ser un conjunto de entrenamiento, prueba, o cualquier agrupación de datos.
+- Un **conjunto de datos** (`Datos`) se representa como `[Dato]` (lista de `Dato`), pudiera ser un conjunto de entrenamiento, prueba, o cualquier agrupación de datos.
 - Una **partición** (`Particion`) se representa como una tupla con el conjunto de entrenamiento y el de prueba `(Datos, Datos)`, se refiere a una de las agrupaciones obtenidas de aplicar el k-fold cross validation, no solo a una de las particiones en las que se dividen el conjunto total de datos.
 - Un **conjunto de particiones** (`Particiones`) se representa como una `[Particion]`.
 - Un **algoritmo** (`Algoritmo`) se representa como una función `Datos -> Pesos` que toma el conjunto de entrenamiento y devuelve la solución (los pesos).

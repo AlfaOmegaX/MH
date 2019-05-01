@@ -2,7 +2,7 @@ PANDOC:=pandoc
 ASTS:=assets
 FILTERS:= filters/pandoc-crossref pandoc-citeproc
 PFLAGS:= $(foreach filter,$(FILTERS),-F $(filter)) --template $(ASTS)/plantilla.tex
-MDS:=P1.md
+MDS:=P1.md P2.md
 PDFS:=$(MDS:%.md=%.pdf)
 
 .PHONY: all clean
