@@ -28,7 +28,7 @@ module Ejecutar where
   ejecuta :: Particiones -> (String, Algoritmo) -> IO String
   ejecuta particiones (nomAlg, alg) =
     do
-      resultados <- mapM (obtenerResultados alg) [head particiones]
+      resultados <- mapM (obtenerResultados alg) particiones
       let nombreAlgoritmo             = "Algoritmo " ++ nomAlg ++ ":\n"
       let (tAci, tRed, t, n, mensaje) = foldl crearInfo (0.0, 0.0, 0.0, 0, nombreAlgoritmo) resultados
       let aciMedio                    = tAci / fromIntegral n

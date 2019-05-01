@@ -17,8 +17,7 @@ module P2 where
   import Control.Monad.State (evalState)
 
   algoritmosP2 :: StdGen -> [(String, Algoritmo)]
-  --algoritmosP2 gen = [("AGG-BLX", aggBlx gen),("AGG-CA", aggCa gen), ("AGE-BLX", ageBlx gen), ("AGE-CA", ageCa gen)]
-  algoritmosP2 gen = [("AM-(10, 1.0)", amTodos gen)]--, ("AM-(10, 0.1)", amProb gen), ("AM-(10, 0.1mej)", amMejor gen)]
+  algoritmosP2 gen = [("AGG-BLX", aggBlx gen),("AGG-CA", aggCa gen), ("AGE-BLX", ageBlx gen), ("AGE-CA", ageCa gen), ("AM-(10, 1.0)", amTodos gen), ("AM-(10, 0.1)", amProb gen), ("AM-(10, 0.1mej)", amMejor gen)]
 
   ---------------------------------------------------------------------------------
   -- Algoritmos genéticos

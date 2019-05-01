@@ -46,7 +46,7 @@ module Main where
   -- Ejecuta todos los dataset
   ejecutarTodos :: StdGen -> IO ()
   ejecutarTodos gen = do
-    let nombresFicheros = ["ionosphere.arff"]--, "colposcopy.arff", "texture.arff"]
+    let nombresFicheros = ["ionosphere.arff", "colposcopy.arff", "texture.arff"]
     mapM_ (ejecutarPrograma gen) nombresFicheros
 
   -- Ejecuta un dataset
