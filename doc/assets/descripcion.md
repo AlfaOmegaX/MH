@@ -93,7 +93,9 @@ También explico algunas funciones que se usan bastante:
 - Un **conjunto de particiones** (`Particiones`) se representa como una `[Particion]`.
 - Un **algoritmo** (`Algoritmo`) se representa como una función `Datos -> Pesos` que toma el conjunto de entrenamiento y devuelve la solución (los pesos).
 
-Para la búsqueda local implemento un tipo extra llamado `Solucion` que encapsula la solución propiamente dicha (los pesos) y guarda su valor de la función objetivo (para evitar evaluarla de nuevo en comparaciones) y también el nº de vecinos que ha creado que se tendrá en cuenta para la condición de parada. Además hay otro tipo especial llamado `Estado a` que he tenido que realizar debido a como funciona Haskell, en términos muy sencillos lo que representa es una función que parte de un estado `s` a una tupla `(a,s)` es decir pasa de un estado a otro y devuelve un resultado, en este caso el estado siempre es fijo pero lo que devuelve puede variar según queramos.
+Para la búsqueda local, algoritmos genéticos... implemento un tipo extra llamado `Solucion` que encapsula la solución propiamente dicha (los pesos) y guarda su valor de la función objetivo (para evitar evaluarla de nuevo en comparaciones) y también el nº de vecinos que ha creado que se tendrá en cuenta para la condición de parada cuando se requiera.
+
+Además hay otro tipo especial llamado `Estado a` que he tenido que realizar debido a como funciona Haskell, en términos muy sencillos lo que representa es una función que parte de un estado `s` a una tupla `(a,s)` es decir pasa de un estado a otro y devuelve un resultado, en este caso el estado siempre es fijo pero lo que devuelve puede variar según queramos.
 
 Aqui el tipo `Solucion`:
 
