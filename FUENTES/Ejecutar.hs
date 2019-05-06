@@ -34,12 +34,12 @@ module Ejecutar where
       let aciMedio                    = tAci / fromIntegral n
       let redMedio                    = tRed / fromIntegral n
       let tMedio                      = t / fromIntegral n
-      return $ mensaje ++ "Acierto medio: " ++ show aciMedio ++ " %, reduccion media: " ++ show redMedio ++ " %, evaluacion media: " ++ show (fEvaluacion 0.5 aciMedio redMedio) ++ ", tiempo medio: " ++ show tMedio ++ "s\n"
+      return $ mensaje ++ "media & " ++ show aciMedio ++ " & " ++ show redMedio ++ " & " ++ show (fEvaluacion 0.5 aciMedio redMedio) ++ " & " ++ show tMedio ++ "\n"
 
   -- Formateo de mensaje de salida
   crearInfo :: (Double, Double, Double, Int, String) -> (Double, Double, Double) -> (Double, Double, Double, Int, String)
   crearInfo (a, r, t, i, c)  (x, y, z) =
-      let mensaje = "Particion " ++ show (i + 1) ++ ": Acierto " ++ show x ++ " %, reduccion: " ++ show y ++ "%, evaluacion: " ++ show (fEvaluacion 0.5 x y) ++  ", tiempo: " ++ show z ++ "s\n"
+      let mensaje = show (i + 1) ++ " & " ++ show x ++ " & " ++ show y ++ " & " ++ show (fEvaluacion 0.5 x y) ++  " & " ++ show z ++ "\n"
       in (a + x, r + y, t + z, i + 1, c ++ mensaje)
 
   -- Aplica un algoritmo para obtener pesos y devuelve los resultados junto con el tiempo tardado

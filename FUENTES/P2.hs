@@ -17,7 +17,7 @@ module P2 where
   import Control.Monad.State (evalState)
 
   algoritmosP2 :: StdGen -> [(String, Algoritmo)]
-  algoritmosP2 gen = [("AGG-BLX", aggBlx gen),("AGG-CA", aggCa gen), ("AGE-BLX", ageBlx gen), ("AGE-CA", ageCa gen), ("AM-(10, 1.0)", amTodos gen), ("AM-(10, 0.1)", amProb gen), ("AM-(10, 0.1mej)", amMejor gen)]
+  algoritmosP2 gen = [("AGG-BLX", aggBlx gen),("AGG-CA", aggCa gen), ("AGE-BLX", ageBlx gen), ("AGE-CA", ageCa gen), ("AM-(10, 1.0)", amTodos gen), ("AM-(10, 0.1)", amProb gen), ("AM-(10, 0.1mej)", amMejor gen), ("AM-(10, 0.2, 0.7)", amProbCambiado gen), ("AM-(10, 1.0, 0.7)", amTodosCambiado gen)]
 
   ---------------------------------------------------------------------------------
   -- Algoritmos genéticos
@@ -202,6 +202,12 @@ module P2 where
 
   amMejor :: StdGen -> Algoritmo
   amMejor = esqGenetico (aplicaMejor 0.1) 10 (blxAlpha 0.3) 0.7 5 mutGeneracional 0.001 reempGeneracional
+
+  amTodosCambiado :: StdGen -> Algoritmo
+  amTodosCambiado = esqGenetico aplicaTodos 10 (blxAlpha 0.7) 0.7 5 mutGeneracional 0.001 reempGeneracional
+
+  amProbCambiado :: StdGen -> Algoritmo
+  amProbCambiado = esqGenetico (aplicaProb 0.2) 10 (blxAlpha 0.7) 0.7 5 mutGeneracional 0.001 reempGeneracional
 
   -- Esquema BL: Aplica BL a toda la poblacion
   aplicaTodos :: EsqBL
