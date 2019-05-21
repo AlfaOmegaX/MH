@@ -44,12 +44,14 @@ module Utils where
   maxVecinos :: Int -> Solucion -> Bool
   maxVecinos maxVec sol = getNVecinos sol >= maxVec
 
-  condParada :: Int -> Int -> Solucion -> Estado Bool
-  condParada maxIter maxVec sol =
+  condParada :: Int -> (Solucion -> Bool) -> Solucion -> Estado Bool
+  condParada maxIter condicionExtra sol =
     do
       c <- maxIteraciones maxIter
-      return $ c || maxVecinos maxVec sol
+      return $ c || condicionExtra sol
 
+  sinMejora :: Int -> Solucion -> Bool
+  sinMejora nVecExi _ = nVecExi == 0 
 
   ---------------------------------------------------------------------------------
   -- Funciones para soluciones
@@ -125,5 +127,6 @@ module Utils where
     (_, nIter) <- get
     put (gen, nIter)
 
+  -- Restringe el valor al inervalo [0,1]
   restringe :: Double -> Double
   restringe = min 1.0 . max 0.0

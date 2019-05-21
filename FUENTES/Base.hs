@@ -78,6 +78,10 @@ module Base where
   -- El esquema de búsqueda local toma la población y la devuelve aplicando BL con los datos, segun un criterio
   type EsqBL = Datos -> Poblacion -> Estado Poblacion
   -----------------------------------------------------------------------------
+  -- P3
+  -----------------------------------------------------------------------------
+  -- La temperatura es un Double
+  type Temp = Double
 
   -----------------------------------------------------------------------------
   -- Funciones básicas

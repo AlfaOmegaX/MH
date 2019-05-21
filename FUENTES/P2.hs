@@ -8,7 +8,7 @@ module P2 where
   {-# LANGUAGE StrictData, Strict #-}
   import Base
   import Utils
-  import P1 (busLocMem)
+  import P1 (crearVecino)
   import qualified Data.Vector.Unboxed as U (Vector, imapM, fromList, foldl, zipWithM, zipWith, empty, length)
   import Data.List (genericLength, sort, delete, maximum, minimum, group)
   import Control.Monad (zipWithM, replicateM, foldM)
@@ -16,6 +16,7 @@ module P2 where
   import System.Random (StdGen)
   import Control.Monad.State (evalState)
 
+  -- Lista de algoritmos
   algoritmosP2 :: StdGen -> [(String, Algoritmo)]
   algoritmosP2 gen = [("AGG-BLX", aggBlx gen),("AGG-CA", aggCa gen), ("AGE-BLX", ageBlx gen), ("AGE-CA", ageCa gen), ("AM-(10, 1.0)", amTodos gen), ("AM-(10, 0.1)", amProb gen), ("AM-(10, 0.1mej)", amMejor gen), ("AM-(10, 0.2, 0.7)", amProbCambiado gen), ("AM-(10, 1.0, 0.7)", amTodosCambiado gen)]
 
@@ -53,7 +54,7 @@ module P2 where
 
   -- Esquema BL: No aplica BL (genético normal)
   noAplica :: EsqBL
-  noAplica _ pob = return pob
+  noAplica _ = return
 
   -- Esquema de creación población iniciaL: crea nPob cromosomas
   crearPobIni :: Int -> EsqInicial
@@ -193,6 +194,10 @@ module P2 where
   ---------------------------------------------------------------------------------
   -- Algoritmos meméticos
   ---------------------------------------------------------------------------------
+
+  -- Aplica busqueda local para algoritmos meméticos
+  busLocMem :: Datos -> Cromosoma -> Estado Cromosoma
+  busLocMem datos cro = fst <$> hastaQueM (condParada 15000 (maxVecinos $ 2 * nCaract datos) . fst) (crearVecino datos) (return (cro, [0..(nCaract datos -1)]))
 
   amTodos :: StdGen -> Algoritmo
   amTodos = esqGenetico aplicaTodos 10 (blxAlpha 0.3) 0.7 5 mutGeneracional 0.001 reempGeneracional

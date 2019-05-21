@@ -70,11 +70,7 @@ dist1c x y = abs (y - x)
 -- Búsqueda local
 busLoc :: StdGen -> Algoritmo
 busLoc gen datos = getPesos $ fst $ evalState
-  (hastaQueM (condParada 15000 (20 * nCaract datos) . fst) (crearVecino datos) (pesosIniRand datos)) (gen, 0)
-
--- Aplica busqueda local para algoritmos meméticos
-busLocMem :: Datos -> Cromosoma -> Estado Cromosoma
-busLocMem datos cro = fst <$> hastaQueM (condParada 15000 (2 * nCaract datos) . fst) (crearVecino datos) (return (cro, [0..(nCaract datos -1)]))
+  (hastaQueM (condParada 15000 (maxVecinos $ 20 * nCaract datos) . fst) (crearVecino datos) (pesosIniRand datos)) (gen, 0)
 
 -- Crea una solución inicial con pesos aleatorios
 pesosIniRand :: Datos -> Estado (Solucion, [Int])
@@ -87,17 +83,18 @@ pesosIniRand datos = do
 -- Creo un nuevo vecino a partir de una solución
 crearVecino :: Datos -> (Solucion, [Int]) -> Estado (Solucion, [Int])
 crearVecino datos (sol, indices) = do
-  (solNueva, solAct, indNuev) <- obtenerVecino 0.3 datos indices sol
+  (solNueva, indNuev) <- obtenerVecino 0.3 datos indices sol
+  let solAct = aumentaVecino sol
   let indNuev' = if solNueva > solAct || null indNuev then [0..(nCaract datos - 1)] else indNuev
   return (max solNueva solAct, indNuev')
 
 -- Obtengo una nueva solución del vecindario de la solución actual
-obtenerVecino :: Double -> Datos -> [Int] -> Solucion -> Estado (Solucion, Solucion, [Int])
+obtenerVecino :: Double -> Datos -> [Int] -> Solucion -> Estado (Solucion, [Int])
 obtenerVecino sD datos indices sol = do
   inds <- randR (0, length indices - 1)
   let ind = indices !! inds
   z <- rNormal sD
   let pesosN = U.imap (\i x -> if i == ind then restringe $ x + z else x) $ getPesos sol
   nuevaSol <- crearSolucion datos pesosN
-  return (nuevaSol, aumentaVecino sol, delete ind indices)
+  return (nuevaSol, delete ind indices)
 ---------------------------------------------------------------------------------
