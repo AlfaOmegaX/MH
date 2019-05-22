@@ -17,7 +17,7 @@ module P3 where
 
   -- Lista de algoritmos
   algoritmosP3 :: StdGen -> [(String, Algoritmo)]
-  algoritmosP3 gen = [("ES", enfrSim gen)]
+  algoritmosP3 gen = [("ILS", ils gen)]
 
   ---------------------------------------------------------------------------------
   -- Enfriamento simulado (ES)
@@ -31,6 +31,10 @@ module P3 where
   -- Criterio de parada (15k iter o max_exitos = 0)
   criterioParada :: (Solucion, Temp, Solucion, Temp, Temp, Int) -> Estado Bool
   criterioParada (sol , _, _, _, _, nVecExi) = condParada 15000 (sinMejora nVecExi) sol
+
+  -- Si no ha habido aceptaciones
+  sinMejora :: Int -> Solucion -> Bool
+  sinMejora nVecExi _ = nVecExi == 0
 
   -- Iteración principal se hace la busqueda en el vecindario y se enfria la temperatura
   iterEnfriamento :: Datos -> (Solucion, Temp, Solucion, Temp, Temp, Int) -> Estado (Solucion, Temp, Solucion, Temp, Temp, Int)
@@ -110,6 +114,7 @@ module P3 where
   iteracionILS datos (solAct, nIter) = do
     solMutada <- mutarSolILS datos solAct
     solBL <- blILS datos solMutada
+    _ <- traceM (show nIter ++ "\n")
     return (max solAct solBL, nIter + 1)
 
   -- Toma una solucion y muta el 10% de sus pesos
@@ -135,4 +140,11 @@ module P3 where
 
   -- BL para ISL
   blILS :: Datos -> Solucion -> Estado Solucion
-  blILS datos sol = fst <$> hastaQueM (condParada 1000 (\_ -> False) . fst) (crearVecino datos) (return (sol, [0..(nCaract datos -1)]))
+  blILS datos sol = do
+    nIterAct <- getIter
+    fst <$> hastaQueM (fParada nIterAct) (crearVecino datos) (return (sol, [0..(nCaract datos -1)]))
+
+  fParada :: Int -> (Solucion, [Int]) -> Estado Bool
+  fParada nIterAct _ = do
+    nIter <- getIter
+    return $ nIter >= (nIterAct + 1000)

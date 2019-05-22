@@ -51,9 +51,6 @@ module Utils where
       c <- maxIteraciones maxIter
       return $ c || condicionExtra sol
 
-  sinMejora :: Int -> Solucion -> Bool
-  sinMejora nVecExi _ = nVecExi == 0
-
   ---------------------------------------------------------------------------------
   -- Funciones para soluciones
   ---------------------------------------------------------------------------------
