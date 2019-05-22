@@ -9,10 +9,10 @@ module P1 where
 {-# LANGUAGE StrictData, Strict #-}
 import Base
 import Utils
-import qualified Data.Vector.Unboxed as U (fromList, replicate, map, maximum, minimum, zipWith, zipWith4, sum, imap)
+import qualified Data.Vector.Unboxed as U (replicate, map, maximum, minimum, zipWith, zipWith4, sum, imap)
 import Data.List (sortBy, find, delete, (!!))
 import Data.Maybe (fromJust)
-import System.Random (StdGen, randoms)
+import System.Random (StdGen)
 import Control.Monad.State (evalState)
 
 -- Lista de algoritmos
@@ -23,7 +23,7 @@ algoritmosP1 gen = [("Pesos aleatorios", pesosRand gen), ("Pesos Uno", pesosUno)
 -- Pesos aleatorios
 ---------------------------------------------------------------------------------
 pesosRand :: StdGen -> Algoritmo
-pesosRand gen datos = U.fromList $ take (nCaract datos) $ randoms gen
+pesosRand gen datos = getPesos $ evalState (pesosIniRand datos) (gen, 0)
 ---------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------
@@ -70,15 +70,13 @@ dist1c x y = abs (y - x)
 -- Búsqueda local
 busLoc :: StdGen -> Algoritmo
 busLoc gen datos = getPesos $ fst $ evalState
-  (hastaQueM (condParada 15000 (maxVecinos $ 20 * nCaract datos) . fst) (crearVecino datos) (pesosIniRand datos)) (gen, 0)
+  (hastaQueM (condParada 15000 (maxVecinos $ 20 * nCaract datos) . fst) (crearVecino datos) (pesosIniBL datos)) (gen, 0)
 
 -- Crea una solución inicial con pesos aleatorios
-pesosIniRand :: Datos -> Estado (Solucion, [Int])
-pesosIniRand datos = do
-  listaRands <- randRs (0.0, 1.0)
-  let pesos = U.fromList $ take (nCaract datos) listaRands
-  sol <- crearSolucion datos pesos
-  return (sol, [0..(nCaract datos - 1)])
+pesosIniBL :: Datos -> Estado (Solucion, [Int])
+pesosIniBL datos = do
+  solRand <- pesosIniRand datos
+  return (solRand, [0..(nCaract datos - 1)])
 
 -- Creo un nuevo vecino a partir de una solución
 crearVecino :: Datos -> (Solucion, [Int]) -> Estado (Solucion, [Int])

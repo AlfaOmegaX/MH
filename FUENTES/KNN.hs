@@ -48,4 +48,4 @@ module KNN where
   evaluarF datos pesos =
     let pReduccion = fromIntegral (U.length (U.filter (< 0.2) pesos)) / fromIntegral (U.length pesos)
         pAcierto   = clas1nn datos datos $ reducePesos pesos
-    in fEvaluacion 0.5 pAcierto pReduccion
+    in fEvaluacion 0.5 (pAcierto * 100) (pReduccion * 100)

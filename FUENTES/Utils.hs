@@ -11,6 +11,7 @@ module Utils where
   import Control.Monad.State (get, put)
   import System.Random (Random, StdGen, randomR, randomRs, next)
   import Data.Random.Normal (normal')
+  import Data.Vector.Unboxed as U (fromList)
 
   ---------------------------------------------------------------------------------
   -- Bucles de control
@@ -51,7 +52,7 @@ module Utils where
       return $ c || condicionExtra sol
 
   sinMejora :: Int -> Solucion -> Bool
-  sinMejora nVecExi _ = nVecExi == 0 
+  sinMejora nVecExi _ = nVecExi == 0
 
   ---------------------------------------------------------------------------------
   -- Funciones para soluciones
@@ -70,6 +71,13 @@ module Utils where
   -- Crear cromosoma
   crearCromosoma :: Datos -> Pesos -> Estado Cromosoma
   crearCromosoma = crearSolucion
+
+  -- Crea una solución inicial con pesos aleatorios
+  pesosIniRand :: Datos -> Estado Solucion
+  pesosIniRand datos = do
+    listaRands <- randRs (0.0, 1.0)
+    let pesos = U.fromList $ take (nCaract datos) listaRands
+    crearSolucion datos pesos
   ---------------------------------------------------------------------------------
   -- Funciones para Estado
   ---------------------------------------------------------------------------------

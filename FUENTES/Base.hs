@@ -38,7 +38,7 @@ module Base where
     getPesos :: Pesos, -- La solución propiamente dicha (los pesos)
     getFit :: Double, -- El resultado de evaluar con la función objetivo los pesos de la solución
     getNVecinos :: Int -- Nº de vecinos en BL
-  }
+  } deriving (Show)
 
   -- Dos soluciones son iguales si tienen los mismos pesos
   instance Eq Solucion where
