@@ -1,7 +1,7 @@
 resultados/
 .stack-work/
 doc/filters
-*resultados.txt
+*resultados*.txt
 *.exe
 *bin
 BIN/ghc-mod*
@@ -9,4 +9,4 @@ BIN/stylish*
 *.prof
 BIN/RESULTADOS/*
 *.zip
-doc/*.pdf
+*.pdf

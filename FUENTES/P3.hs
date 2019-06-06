@@ -17,7 +17,7 @@ module P3 where
 
   -- Lista de algoritmos
   algoritmosP3 :: StdGen -> [(String, Algoritmo)]
-  algoritmosP3 gen = [("ILS", ils gen)]
+  algoritmosP3 gen = [("ES", enfrSim gen)]--, ("ILS", ils gen)]
 
   ---------------------------------------------------------------------------------
   -- Enfriamento simulado (ES)
@@ -39,12 +39,12 @@ module P3 where
   -- Iteración principal se hace la busqueda en el vecindario y se enfria la temperatura
   iterEnfriamento :: Datos -> (Solucion, Temp, Solucion, Temp, Temp, Int) -> Estado (Solucion, Temp, Solucion, Temp, Temp, Int)
   iterEnfriamento datos (solAct, tAct, mejSol, t0, tf, _) = do
-    let nMaxVec = length datos
+    let nMaxVec = nCaract datos * 10
     --_ <- traceM ("\nmax_vecinos: " ++ show nMaxVec ++ "\nmax_exitos: " ++ show (fromIntegral nMaxVec * 0.1) ++ "\nt0: " ++ show t0 ++ "\ntf: " ++ show tf ++ "\n")
-    (solNueva, solMejNueva, nVecGen, nVecExi) <- hastaQueM (condEnfriamento nMaxVec) (exploraVecindario datos tAct) (return (solAct, mejSol, 0, 0))
+    (solNueva, solMejNueva, _, nVecExi) <- hastaQueM (condEnfriamento nMaxVec) (exploraVecindario datos tAct) (return (solAct, mejSol, 0, 0))
     let m = round $ (15000 :: Double) / fromIntegral nMaxVec
-    n <- getIter
-    _ <- traceM ("\nNº vecinos generados: " ++ show nVecGen ++ "\nNº vecinos aceptados: " ++ show nVecExi ++ "\nNº de iteraciones: " ++ show n ++ "\nT: " ++ show tAct ++ "\n")
+    --n <- getIter
+    --_ <- traceM ("\nNº vecinos generados: " ++ show nVecGen ++ "\nNº vecinos aceptados: " ++ show nVecExi ++ "\nNº de iteraciones: " ++ show n ++ "\nT: " ++ show tAct ++ "\n")
     return (solNueva, enfriaCauchy m tAct t0 tf, solMejNueva, t0, tf, nVecExi)
 
   -- Criterio de enfriamento, Cauchy modificado
@@ -54,7 +54,7 @@ module P3 where
 
   -- Criterio geométrico
   enfriaGeometrica :: Int -> Temp -> Temp -> Temp -> Temp
-  enfriaGeometrica m t t0 tf = t * 0.90
+  enfriaGeometrica _ t _ _ = t * 0.90
 
   -- Condición de enfriamento (si se sigue buscando en el vecindario): si no se ha sobrepasado los max_vecinos o max_exitos, o las 15k iteraciones
   condEnfriamento :: Int -> (Solucion, Solucion, Int, Int) -> Estado Bool
@@ -70,11 +70,12 @@ module P3 where
     solNueva <- obtenerVecino 0.3 datos solAct
     --_ <- traceM( "SolAct: " ++ show solAct ++ "\nSolNueva: " ++ show solNueva ++ "\n")
     let diferencia = getFit solAct - getFit solNueva
+    let diferencia' = if diferencia == 0 then 0.005 else diferencia
     --_ <- traceM ("\nFit actual: " ++ show (getFit solAct) ++ "\nFit nuevo: " ++ show (getFit solNueva) ++ "\n")
     numR <- randR (0.0, 1.0)
     --_ <- traceM ("\nSol iguales?: " ++ show (getPesos solAct == getPesos solNueva))
     --_ <- traceM ("\nProb: " ++ show ( exp (- diferencia / tAct)) ++ "\nDiferencia: " ++ show diferencia ++ "\ntAct:" ++ show tAct ++ "\nNº vec mej: " ++ show nVecExi ++ "\n")
-    if (diferencia < 0 || numR <= exp (- diferencia / tAct)) then
+    if diferencia' < 0 || numR <= exp (- diferencia' / tAct) then
       return (solNueva, max solNueva mejSol, nVec + 1, nVecExi + 1)
     else
       return (aumentaVecino solAct, mejSol, nVec + 1, nVecExi)
@@ -85,8 +86,7 @@ module P3 where
     ind <- randR (0, nCaract datos - 1)
     z <- rNormal sD
     let pesosN = U.imap (\i x -> if i == ind then restringe $ x + z else x) $ getPesos sol
-    nuevaSol <- crearSolucion datos pesosN
-    return nuevaSol
+    crearSolucion datos pesosN
 
   -- Crea la solución inicial que consta de: SolAct + + TActual + MejorSol + T0 + Tf
   solIniES :: Double -> Temp -> Datos -> Estado (Solucion, Temp, Solucion, Temp, Temp, Int)
@@ -120,7 +120,7 @@ module P3 where
   -- Toma una solucion y muta el 10% de sus pesos
   mutarSolILS :: Datos -> Solucion -> Estado Solucion
   mutarSolILS datos solAct = do
-    let nMutaciones = min 1 $ round $ (0.1 :: Double) * (fromIntegral $ nCaract datos)
+    let nMutaciones = min 1 $ round $ (0.1 :: Double) * fromIntegral (nCaract datos)
     pesosMutados <- repiteNM nMutaciones (mutarPesos 0.4) (getPesos solAct)
     crearSolucion datos pesosMutados
 
