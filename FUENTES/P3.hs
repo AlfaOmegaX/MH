@@ -9,15 +9,17 @@ module P3 where
   import Base
   import Utils
   import P1 (crearVecino)
+  import qualified Data.List as L (delete, elemIndices)
   import System.Random (StdGen)
   import Control.Monad.State (evalState)
   import qualified Control.Monad.HT as M (until)
-  import qualified Data.Vector.Unboxed as U (imap, length)
-  import Debug.Trace
+  import Control.Monad (replicateM)
+  import qualified Data.Vector.Unboxed as U (imap, length, fromList, (!))
+  --import Debug.Trace
 
   -- Lista de algoritmos
   algoritmosP3 :: StdGen -> [(String, Algoritmo)]
-  algoritmosP3 gen = [("ES", enfrSim gen)]--, ("ILS", ils gen)]
+  algoritmosP3 gen = [("DE-Rand", dERand gen), ("DE-CurrentBest", dECurrentBest gen)]
 
   ---------------------------------------------------------------------------------
   -- Enfriamento simulado (ES)
@@ -40,11 +42,8 @@ module P3 where
   iterEnfriamento :: Datos -> (Solucion, Temp, Solucion, Temp, Temp, Int) -> Estado (Solucion, Temp, Solucion, Temp, Temp, Int)
   iterEnfriamento datos (solAct, tAct, mejSol, t0, tf, _) = do
     let nMaxVec = nCaract datos * 10
-    --_ <- traceM ("\nmax_vecinos: " ++ show nMaxVec ++ "\nmax_exitos: " ++ show (fromIntegral nMaxVec * 0.1) ++ "\nt0: " ++ show t0 ++ "\ntf: " ++ show tf ++ "\n")
     (solNueva, solMejNueva, _, nVecExi) <- hastaQueM (condEnfriamento nMaxVec) (exploraVecindario datos tAct) (return (solAct, mejSol, 0, 0))
     let m = round $ (15000 :: Double) / fromIntegral nMaxVec
-    --n <- getIter
-    --_ <- traceM ("\nNº vecinos generados: " ++ show nVecGen ++ "\nNº vecinos aceptados: " ++ show nVecExi ++ "\nNº de iteraciones: " ++ show n ++ "\nT: " ++ show tAct ++ "\n")
     return (solNueva, enfriaCauchy m tAct t0 tf, solMejNueva, t0, tf, nVecExi)
 
   -- Criterio de enfriamento, Cauchy modificado
@@ -60,7 +59,6 @@ module P3 where
   condEnfriamento :: Int -> (Solucion, Solucion, Int, Int) -> Estado Bool
   condEnfriamento nMaxVec (_, _, nVec, nVecExi) = do
     b <- maxIteraciones 15000
-    --_ <- traceM ("\nNº max exitos: " ++ show nMaxExi ++ "\nNº exitos: " ++ show nVecExi ++ "\n")
     return $ b || nVec >= nMaxVec || nVecExi >= nMaxExi
     where nMaxExi = round $ fromIntegral nMaxVec * (0.1 :: Double)
 
@@ -68,13 +66,9 @@ module P3 where
   exploraVecindario :: Datos -> Temp -> (Solucion, Solucion, Int, Int) -> Estado (Solucion, Solucion, Int, Int)
   exploraVecindario datos tAct (solAct, mejSol, nVec, nVecExi) = do
     solNueva <- obtenerVecino 0.3 datos solAct
-    --_ <- traceM( "SolAct: " ++ show solAct ++ "\nSolNueva: " ++ show solNueva ++ "\n")
     let diferencia = getFit solAct - getFit solNueva
     let diferencia' = if diferencia == 0 then 0.005 else diferencia
-    --_ <- traceM ("\nFit actual: " ++ show (getFit solAct) ++ "\nFit nuevo: " ++ show (getFit solNueva) ++ "\n")
     numR <- randR (0.0, 1.0)
-    --_ <- traceM ("\nSol iguales?: " ++ show (getPesos solAct == getPesos solNueva))
-    --_ <- traceM ("\nProb: " ++ show ( exp (- diferencia / tAct)) ++ "\nDiferencia: " ++ show diferencia ++ "\ntAct:" ++ show tAct ++ "\nNº vec mej: " ++ show nVecExi ++ "\n")
     if diferencia' < 0 || numR <= exp (- diferencia' / tAct) then
       return (solNueva, max solNueva mejSol, nVec + 1, nVecExi + 1)
     else
@@ -92,7 +86,6 @@ module P3 where
   solIniES :: Double -> Temp -> Datos -> Estado (Solucion, Temp, Solucion, Temp, Temp, Int)
   solIniES mu phi datos = do
     solIni <- M.until (tempInicialValida mu phi) (pesosIniRand datos)
-    --_ <- traceM ("\nFit: " ++ (show $ getFit solIni))
     let tempIni = mu * (100 - getFit solIni) / (- log phi)
     return (solIni, tempIni, solIni, tempIni, 0.001, 1)
 
@@ -114,7 +107,6 @@ module P3 where
   iteracionILS datos (solAct, nIter) = do
     solMutada <- mutarSolILS datos solAct
     solBL <- blILS datos solMutada
-    _ <- traceM (show nIter ++ "\n")
     return (max solAct solBL, nIter + 1)
 
   -- Toma una solucion y muta el 10% de sus pesos
@@ -148,3 +140,80 @@ module P3 where
   fParada nIterAct _ = do
     nIter <- getIter
     return $ nIter >= (nIterAct + 1000)
+
+  ---------------------------------------------------------------------------------
+  -- Evolución diferencial (DE)
+  ---------------------------------------------------------------------------------
+
+  -- Evolución diferencial con mutación aleatoria
+  dERand :: StdGen -> Algoritmo
+  dERand = dE mutRand
+
+  -- Evolución diferencial con mutación el mejor actual
+  dECurrentBest :: StdGen -> Algoritmo
+  dECurrentBest = dE mutCurrentBest
+
+  -- Esquema general de evolución diferencial
+  dE :: EsqMutar -> StdGen -> Algoritmo
+  dE esqMut gen datos = getPesos (maximum pobSol)
+    where pobSol = evalState (hastaQueM (\_ -> maxIteraciones 15000) (iterDE datos esqMut) (crearPobIni 50 datos)) (gen, 0)
+
+  -- Crea nPob individuos aleatorios
+  crearPobIni :: Int -> Datos -> Estado Poblacion
+  crearPobIni nPob datos = replicateM nPob (crearCromIni datos)
+
+  -- Crea un cromosoma aleatorio
+  crearCromIni :: Datos -> Estado Cromosoma
+  crearCromIni datos =
+    do
+      nRandoms <- randRs (0.0, 1.0)
+      let pesos = U.fromList $ take (nCaract datos) nRandoms
+      crearCromosoma datos pesos
+
+  -- Actualizamos la población para todos los cromosomas
+  iterDE :: Datos -> EsqMutar -> Poblacion -> Estado Poblacion
+  iterDE datos esqMutRecom pobActual = do
+    (pobNueva, _) <- repiteNM (length pobActual) (actualizarPoblacion datos esqMutRecom) (pobActual, 0)
+    return pobNueva
+
+  -- Iteración i-ésima, actualiza el miembro i de la población
+  actualizarPoblacion :: Datos -> EsqMutar -> (Poblacion, Int) -> Estado (Poblacion, Int)
+  actualizarPoblacion datos esqMut (pob, i) = do
+    let vectorIni = replicate (nCaract datos) 0
+    let nPob = length pob
+    (pesosNuevos, _) <- repiteNM (nCaract datos) (mutReemp esqMut pob i) (vectorIni, 0)
+    let pesosNuevos' = U.fromList pesosNuevos
+    hijoNuevo <- crearCromosoma datos pesosNuevos'
+    let pobActualizada = if getFit hijoNuevo > getFit (pob !! i) then take nPob pob ++ [hijoNuevo] ++ drop (nPob + 1) pob else pob
+    return (pobActualizada, i + 1)
+
+  -- Iteración de mutar y reemplazar para el elemento i en la característica j
+  mutReemp :: EsqMutar -> Poblacion -> Int -> ([Double], Int) -> Estado ([Double], Int)
+  mutReemp esqMut pob i (pesos, j) = do
+    let nCarac = length pesos
+    r <- randR (0.0, 1.0)
+    valorModif <- if r <= (0.5 :: Double) then esqMut pob i j else return (getPesos (pob !! i) U.! j)
+    return (take nCarac pesos ++ [valorModif] ++ drop (nCarac + 1) pesos, j + 1)
+
+  -- Mutación aleatoria: toma 3 padres distintos (y de i) y combina los valores de la característica j
+  mutRand :: EsqMutar
+  mutRand pob i j = do
+    let indices = L.delete i [0..(length pob - 1)]
+    (i1:i2:i3:_) <- tomaIndRand 3 indices
+    return $ getPesos (pob !! i1) U.! j + 0.5 * (getPesos (pob !! i2) U.! j - getPesos (pob !! i3) U.! j)
+
+  mutCurrentBest :: EsqMutar
+  mutCurrentBest pob i j = do
+    let indices = L.delete i [0..(length pob - 1)]
+    (i1:i2:_) <- tomaIndRand 2 indices
+    let (iMejor:_) = maximum pob `L.elemIndices` pob
+    return $ getPesos (pob !! i) U.! j + 0.5 * (getPesos (pob !! iMejor) U.! j - getPesos (pob !! i) U.! j) + 0.5 * (getPesos (pob !! i1) U.! j - getPesos (pob !! i2) U.! j)
+
+  -- Toma nInd indices distintos de la lista de índices
+  tomaIndRand :: Int -> [Int] -> Estado [Int]
+  tomaIndRand nInd indices = snd <$> repiteNM nInd tomaIndice (indices, [])
+    where
+      tomaIndice (inds, res) =
+        do
+          i <- randR (0, length inds - 1)
+          return (L.delete (inds !! i) inds, res ++ [inds !! i])
