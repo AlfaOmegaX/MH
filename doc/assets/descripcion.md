@@ -42,6 +42,7 @@ El código se encuentra distribuido en diferentes módulos:
 - `Utils`: funciones auxiliares comunes
 - `P1`: algoritmos de la P1
 - `P2`: algoritmos de la P2
+- `P3`: algoritmos de la P3
 
 ## Notación de pseudocódigo
 He usado la explicación de Pablo Baeyens Fernández (disponible en [GitHub](https://github.com/mx-psi/metaheuristicas)) que también hizo las prácticas en Haskell y se entiende bastante bien para gente nueva a este tipo de notación:
@@ -114,7 +115,6 @@ type Estado a = State (StdGen, Int) a
 ```
 El estado será una tupla de un generador de nº aleatorios y un número que representará el nº de evaluaciones de la función objetivo a lo largo de la ejecución del algoritmo de búsqueda local. Tengo que llevar un generador como estado debido a la transparencia referencial de Haskell (una función siempre devuelve lo mismo con los mismos parámetros de entrada) por lo que para ir generando nº aleatorios un generador devuelve un nº aleatorio y un nuevo generador; en cualquier caso esa es la idea general, que tengo un estado **global** por decirlo de alguna manera al que puedo acceder, realizar cosas y devolver otro estado nuevo.
 
-
 ## Lectura del archivo .arff y normalización
 
 La lectura del archivo es simple: primero se ignora todo hasta que se llega `@data`. Entonces para cada linea leo todos los valores excepto el último y creo un `Punto` con esos valores y con el último formo la `Clase` y con ambos ya tengo un `Dato`.
@@ -178,3 +178,13 @@ evaluarF datos pesos =
 Tendremos una lista de distintos algoritmos que queremos aplicarles todos nuestras particiones y obtener los resultados, entonces para cada algoritmo y cada partición se ejecuta el algoritmo con esa partición que nos devuelve unos pesos y el tiempo tardado en obtenerlos. Vemos el porcentaje de reducción y reducimos los pesos para poder aplicar 1-NN y ya obtenemos el porcentaje de acierto y podemos sacar el valor de la función objetivo. Cuando tenemos las 5 particiones hacemos los valores medios y pasamos al siguiente algoritmo.
 
 Finalmente se escribe en el archivo "nombreFichero_resultados.txt" los resultados de todos los algoritmos con las 5 particiones y los valores medios.
+
+## Creación de una solución aleatoria
+Es muy común en todas las prácticas crear una solución aleatoria, y se haría de esta manera:
+```haskell
+pesosIniRand :: Datos -> Estado Solucion
+pesosIniRand datos = do
+  let listaRands = listaInfinitaRandoms (0.0, 1.0)
+  let pesos = toma (nCaract datos) listaRands
+  return crearSolucion datos pesos
+```

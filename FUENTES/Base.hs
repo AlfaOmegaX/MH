@@ -82,11 +82,8 @@ module Base where
   -----------------------------------------------------------------------------
   -- La temperatura es un Double
   type Temp = Double
-  -----------------------------------------------------------------------------
-  -- P4
-  -----------------------------------------------------------------------------
   -- Esquema para mutar
-  type EsqMutar = Poblacion -> Int -> Int -> Estado Double
+  type EsqMutar = Poblacion -> Int -> Int -> [Int] -> Estado Double
 
   -----------------------------------------------------------------------------
   -- Funciones básicas

@@ -28,13 +28,15 @@ module Utils where
 
   repiteNM :: Monad m => Int -> (a -> m a) -> a -> m a
   repiteNM 0 _ x = return x
-  repiteNM n f x = bucleM n (return x)
-    where
-      bucleM i m =
-        do
-          v <- m
-          if i > 0 then bucleM (i - 1) (f v) else m
+  repiteNM n f x = do
+    y <- f x
+    repiteNM (n - 1) f y
 
+  repiteNM2 :: Monad m => Int -> (a -> m a) -> m a -> m a
+  repiteNM2 0 _ x = x
+  repiteNM2 n f x = do
+    v <- x
+    repiteNM2 (n - 1) f (f v)
 
   maxIteraciones :: Int -> Estado Bool
   maxIteraciones maxIter =

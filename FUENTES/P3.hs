@@ -15,19 +15,19 @@ module P3 where
   import qualified Control.Monad.HT as M (until)
   import Control.Monad (replicateM)
   import qualified Data.Vector.Unboxed as U (imap, length, fromList, (!))
-  --import Debug.Trace
+  import Debug.Trace
 
   -- Lista de algoritmos
   algoritmosP3 :: StdGen -> [(String, Algoritmo)]
-  algoritmosP3 gen = [("DE-Rand", dERand gen), ("DE-CurrentBest", dECurrentBest gen)]
+  algoritmosP3 gen = [("ILS", iLS gen)] --("DE-Rand", dERand gen), ("DE-CurrentBest", dECurrentBest gen)]
 
   ---------------------------------------------------------------------------------
   -- Enfriamento simulado (ES)
   ---------------------------------------------------------------------------------
 
   -- Enfriamento simulado, seguimos iterando hasta 15k iteraciones o max_exitos = 0
-  enfrSim :: StdGen -> Algoritmo
-  enfrSim gen datos = getPesos solMej
+  eS :: StdGen -> Algoritmo
+  eS gen datos = getPesos solMej
     where (_, _, solMej, _, _, _) = evalState (hastaQueM criterioParada (iterEnfriamento datos) (solIniES 0.3 0.3 datos)) (gen, 0)
 
   -- Criterio de parada (15k iter o max_exitos = 0)
@@ -37,6 +37,17 @@ module P3 where
   -- Si no ha habido aceptaciones
   sinMejora :: Int -> Solucion -> Bool
   sinMejora nVecExi _ = nVecExi == 0
+
+  -- Crea la solución inicial que consta de: SolAct + + TActual + MejorSol + T0 + Tf
+  solIniES :: Double -> Temp -> Datos -> Estado (Solucion, Temp, Solucion, Temp, Temp, Int)
+  solIniES mu phi datos = do
+    solIni <- M.until (tempInicialValida mu phi) (pesosIniRand datos)
+    let tempIni = mu * (100 - getFit solIni) / (- log phi)
+    return (solIni, tempIni, solIni, tempIni, 0.001, 1)
+
+  -- Comprueba que la temperatura inicial es mayor que la final
+  tempInicialValida :: Double -> Double -> Solucion -> Bool
+  tempInicialValida mu phi solIni = getFit solIni > - log phi * mu * 0.001
 
   -- Iteración principal se hace la busqueda en el vecindario y se enfria la temperatura
   iterEnfriamento :: Datos -> (Solucion, Temp, Solucion, Temp, Temp, Int) -> Estado (Solucion, Temp, Solucion, Temp, Temp, Int)
@@ -82,38 +93,37 @@ module P3 where
     let pesosN = U.imap (\i x -> if i == ind then restringe $ x + z else x) $ getPesos sol
     crearSolucion datos pesosN
 
-  -- Crea la solución inicial que consta de: SolAct + + TActual + MejorSol + T0 + Tf
-  solIniES :: Double -> Temp -> Datos -> Estado (Solucion, Temp, Solucion, Temp, Temp, Int)
-  solIniES mu phi datos = do
-    solIni <- M.until (tempInicialValida mu phi) (pesosIniRand datos)
-    let tempIni = mu * (100 - getFit solIni) / (- log phi)
-    return (solIni, tempIni, solIni, tempIni, 0.001, 1)
-
-  -- Comprueba que la temperatura inicial es mayor que la final
-  tempInicialValida :: Double -> Double -> Solucion -> Bool
-  tempInicialValida mu phi solIni = getFit solIni > - log phi * mu * 0.001
-
   ---------------------------------------------------------------------------------
   -- Búsqueda Local Reiterada (ILS)
   ---------------------------------------------------------------------------------
 
   -- ILS, se evalua 15 veces
-  ils :: StdGen -> Algoritmo
-  ils gen datos = getPesos sol
-    where (sol, _) = evalState (hastaQueM ((\n -> return $ n >= 15). snd) (iteracionILS datos) (solIniILS datos)) (gen, 0)
+  iLS :: StdGen -> Algoritmo
+  iLS gen datos = getPesos sol
+    where sol = evalState (repiteNM2 14 (iteracionILS datos) (solIniILS datos)) (gen, 0)
+
+  -- Solución inicial de ISL: Aplicar BL a una sol aleatoria
+  solIniILS :: Datos -> Estado Solucion
+  solIniILS datos = do
+    sol <- pesosIniRand datos
+    blILS datos sol
+
+  -- BL para ISL
+  blILS :: Datos -> Solucion -> Estado Solucion
+  blILS datos sol = fst <$> repiteNM2 1000 (crearVecino datos) (return (sol, [0..(nCaract datos -1)]))
 
   -- Se coge la sol actual, se muta y se aplica BL; se devuelve la mejor solución de las dos
-  iteracionILS :: Datos -> (Solucion, Int) -> Estado (Solucion, Int)
-  iteracionILS datos (solAct, nIter) = do
+  iteracionILS :: Datos -> Solucion -> Estado Solucion
+  iteracionILS datos solAct = do
     solMutada <- mutarSolILS datos solAct
     solBL <- blILS datos solMutada
-    return (max solAct solBL, nIter + 1)
+    return (max solAct solBL)
 
   -- Toma una solucion y muta el 10% de sus pesos
   mutarSolILS :: Datos -> Solucion -> Estado Solucion
   mutarSolILS datos solAct = do
     let nMutaciones = min 1 $ round $ (0.1 :: Double) * fromIntegral (nCaract datos)
-    pesosMutados <- repiteNM nMutaciones (mutarPesos 0.4) (getPesos solAct)
+    pesosMutados <-repiteNM nMutaciones (mutarPesos 0.4) (getPesos solAct)
     crearSolucion datos pesosMutados
 
   -- Muta unos pesos
@@ -122,24 +132,6 @@ module P3 where
     ind <- randR (0, U.length pesos - 1)
     z <- rNormal sD
     return $ U.imap (\i x -> if i == ind then restringe $ x + z else x) pesos
-
-  -- Solución inicial de ISL: Aplicar BL a una sol aleatoria
-  solIniILS :: Datos -> Estado (Solucion, Int)
-  solIniILS datos = do
-    sol <- pesosIniRand datos
-    solBL <- blILS datos sol
-    return (solBL, 1)
-
-  -- BL para ISL
-  blILS :: Datos -> Solucion -> Estado Solucion
-  blILS datos sol = do
-    nIterAct <- getIter
-    fst <$> hastaQueM (fParada nIterAct) (crearVecino datos) (return (sol, [0..(nCaract datos -1)]))
-
-  fParada :: Int -> (Solucion, [Int]) -> Estado Bool
-  fParada nIterAct _ = do
-    nIter <- getIter
-    return $ nIter >= (nIterAct + 1000)
 
   ---------------------------------------------------------------------------------
   -- Evolución diferencial (DE)
@@ -181,33 +173,29 @@ module P3 where
   actualizarPoblacion datos esqMut (pob, i) = do
     let vectorIni = replicate (nCaract datos) 0
     let nPob = length pob
-    (pesosNuevos, _) <- repiteNM (nCaract datos) (mutReemp esqMut pob i) (vectorIni, 0)
+    indices <- tomaIndRand 3 (L.delete i [0..(length pob - 1)])
+    (pesosNuevos, _) <- repiteNM (nCaract datos) (mutReemp esqMut pob i indices) (vectorIni, 0)
     let pesosNuevos' = U.fromList pesosNuevos
     hijoNuevo <- crearCromosoma datos pesosNuevos'
     let pobActualizada = if getFit hijoNuevo > getFit (pob !! i) then take nPob pob ++ [hijoNuevo] ++ drop (nPob + 1) pob else pob
     return (pobActualizada, i + 1)
 
   -- Iteración de mutar y reemplazar para el elemento i en la característica j
-  mutReemp :: EsqMutar -> Poblacion -> Int -> ([Double], Int) -> Estado ([Double], Int)
-  mutReemp esqMut pob i (pesos, j) = do
+  mutReemp :: EsqMutar -> Poblacion -> Int -> [Int] -> ([Double], Int) -> Estado ([Double], Int)
+  mutReemp esqMut pob i indices (pesos, j) = do
     let nCarac = length pesos
     r <- randR (0.0, 1.0)
-    valorModif <- if r <= (0.5 :: Double) then esqMut pob i j else return (getPesos (pob !! i) U.! j)
+    valorModif <- if r <= (0.5 :: Double) then esqMut pob i j indices else return (getPesos (pob !! i) U.! j)
     return (take nCarac pesos ++ [valorModif] ++ drop (nCarac + 1) pesos, j + 1)
 
   -- Mutación aleatoria: toma 3 padres distintos (y de i) y combina los valores de la característica j
   mutRand :: EsqMutar
-  mutRand pob i j = do
-    let indices = L.delete i [0..(length pob - 1)]
-    (i1:i2:i3:_) <- tomaIndRand 3 indices
-    return $ getPesos (pob !! i1) U.! j + 0.5 * (getPesos (pob !! i2) U.! j - getPesos (pob !! i3) U.! j)
+  mutRand pob _ j (i1:i2:i3:_) = return $ restringe $ getPesos (pob !! i1) U.! j + 0.5 * (getPesos (pob !! i2) U.! j - getPesos (pob !! i3) U.! j)
 
   mutCurrentBest :: EsqMutar
-  mutCurrentBest pob i j = do
-    let indices = L.delete i [0..(length pob - 1)]
-    (i1:i2:_) <- tomaIndRand 2 indices
+  mutCurrentBest pob i j (i1:i2:_)= do
     let (iMejor:_) = maximum pob `L.elemIndices` pob
-    return $ getPesos (pob !! i) U.! j + 0.5 * (getPesos (pob !! iMejor) U.! j - getPesos (pob !! i) U.! j) + 0.5 * (getPesos (pob !! i1) U.! j - getPesos (pob !! i2) U.! j)
+    return $ restringe $ getPesos (pob !! i) U.! j + 0.5 * (getPesos (pob !! iMejor) U.! j - getPesos (pob !! i) U.! j) + 0.5 * (getPesos (pob !! i1) U.! j - getPesos (pob !! i2) U.! j)
 
   -- Toma nInd indices distintos de la lista de índices
   tomaIndRand :: Int -> [Int] -> Estado [Int]
