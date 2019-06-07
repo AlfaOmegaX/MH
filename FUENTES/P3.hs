@@ -15,11 +15,10 @@ module P3 where
   import qualified Control.Monad.HT as M (until)
   import Control.Monad (replicateM)
   import qualified Data.Vector.Unboxed as U (imap, length, fromList, (!))
-  import Debug.Trace
 
   -- Lista de algoritmos
   algoritmosP3 :: StdGen -> [(String, Algoritmo)]
-  algoritmosP3 gen = [("ILS", iLS gen)] --("DE-Rand", dERand gen), ("DE-CurrentBest", dECurrentBest gen)]
+  algoritmosP3 gen = [("ES", eS gen), ("ILS", iLS gen), ("DE-Rand", dERand gen), ("DE-CurrentBest", dECurrentBest gen), ("DE-Best", dEBest gen)]
 
   ---------------------------------------------------------------------------------
   -- Enfriamento simulado (ES)
@@ -141,9 +140,13 @@ module P3 where
   dERand :: StdGen -> Algoritmo
   dERand = dE mutRand
 
-  -- Evolución diferencial con mutación el mejor actual
+  -- Evolución diferencial con mutación el actual hacia el mejor
   dECurrentBest :: StdGen -> Algoritmo
   dECurrentBest = dE mutCurrentBest
+
+  -- Evolución diferencial con mutación el mejor
+  dEBest :: StdGen -> Algoritmo
+  dEBest = dE mutBest
 
   -- Esquema general de evolución diferencial
   dE :: EsqMutar -> StdGen -> Algoritmo
@@ -171,31 +174,36 @@ module P3 where
   -- Iteración i-ésima, actualiza el miembro i de la población
   actualizarPoblacion :: Datos -> EsqMutar -> (Poblacion, Int) -> Estado (Poblacion, Int)
   actualizarPoblacion datos esqMut (pob, i) = do
-    let vectorIni = replicate (nCaract datos) 0
-    let nPob = length pob
+    let vectorIni = replicate (nCaract datos) 0.0
     indices <- tomaIndRand 3 (L.delete i [0..(length pob - 1)])
     (pesosNuevos, _) <- repiteNM (nCaract datos) (mutReemp esqMut pob i indices) (vectorIni, 0)
     let pesosNuevos' = U.fromList pesosNuevos
     hijoNuevo <- crearCromosoma datos pesosNuevos'
-    let pobActualizada = if getFit hijoNuevo > getFit (pob !! i) then take nPob pob ++ [hijoNuevo] ++ drop (nPob + 1) pob else pob
+    let pobActualizada = if hijoNuevo > (pob !! i) then take i pob ++ [hijoNuevo] ++ drop (i + 1) pob else pob
     return (pobActualizada, i + 1)
 
   -- Iteración de mutar y reemplazar para el elemento i en la característica j
   mutReemp :: EsqMutar -> Poblacion -> Int -> [Int] -> ([Double], Int) -> Estado ([Double], Int)
   mutReemp esqMut pob i indices (pesos, j) = do
-    let nCarac = length pesos
     r <- randR (0.0, 1.0)
     valorModif <- if r <= (0.5 :: Double) then esqMut pob i j indices else return (getPesos (pob !! i) U.! j)
-    return (take nCarac pesos ++ [valorModif] ++ drop (nCarac + 1) pesos, j + 1)
+    return (take j pesos ++ [valorModif] ++ drop (j + 1) pesos, j + 1)
 
   -- Mutación aleatoria: toma 3 padres distintos (y de i) y combina los valores de la característica j
   mutRand :: EsqMutar
   mutRand pob _ j (i1:i2:i3:_) = return $ restringe $ getPesos (pob !! i1) U.! j + 0.5 * (getPesos (pob !! i2) U.! j - getPesos (pob !! i3) U.! j)
 
+  -- Mutación actual al mejor: diferencia entre 2 aleatorios y el actual y el mejor
   mutCurrentBest :: EsqMutar
-  mutCurrentBest pob i j (i1:i2:_)= do
+  mutCurrentBest pob i j (i1:i2:_) = do
     let (iMejor:_) = maximum pob `L.elemIndices` pob
     return $ restringe $ getPesos (pob !! i) U.! j + 0.5 * (getPesos (pob !! iMejor) U.! j - getPesos (pob !! i) U.! j) + 0.5 * (getPesos (pob !! i1) U.! j - getPesos (pob !! i2) U.! j)
+
+  -- Mutación mejor: diferencia entre 2 aleatorios y suma el mejor
+  mutBest :: EsqMutar
+  mutBest pob _ j (i1:i2:_) = do
+    let (iMejor:_) = maximum pob `L.elemIndices` pob
+    return $ restringe $ getPesos (pob !! iMejor) U.! j + 0.5 * (getPesos (pob !! i1) U.! j - getPesos (pob !! i2) U.! j)
 
   -- Toma nInd indices distintos de la lista de índices
   tomaIndRand :: Int -> [Int] -> Estado [Int]
